@@ -1,6 +1,202 @@
 /**
  * ChatMarker - WhatsApp Web Specific Styles
- * To be fully implemented in Day 2
+ * Styles for mark icons and labels in WhatsApp Web
  */
 
-/* WhatsApp-specific mark icon positioning will go here */
+/* Mark icon container - positioned within message metadata */
+.chatmarker-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 1 !important; /* Always visible for now during testing */
+  vertical-align: middle;
+  position: relative;
+  z-index: 100;
+}
+
+.chatmarker-icon:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* When message is marked, always show icon */
+.chatmarker-icon.marked {
+  opacity: 1;
+}
+
+/* Star icon styling */
+.chatmarker-star {
+  font-size: 18px;
+  color: #FFD700; /* Gold color for star */
+  user-select: none;
+  display: inline-block;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Unmarked star (outline) */
+.chatmarker-icon:not(.marked) .chatmarker-star {
+  color: #8696a0; /* WhatsApp's icon gray */
+  text-shadow: none;
+}
+
+.chatmarker-icon:not(.marked):hover .chatmarker-star {
+  color: #FFD700;
+}
+
+/* Animation on mark/unmark */
+@keyframes star-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.chatmarker-icon.marked .chatmarker-star {
+  animation: star-pop 0.3s ease;
+}
+
+/* TEMPORARILY DISABLED FOR TESTING - Hide icon on messages until hover (unless marked) */
+/*
+div[data-id]:not(:hover) .chatmarker-icon:not(.marked) {
+  opacity: 0;
+}
+
+div[data-id]:hover .chatmarker-icon:not(.marked) {
+  opacity: 0.6;
+}
+*/
+
+/* For testing: always show all icons */
+div[data-id] .chatmarker-icon {
+  opacity: 1 !important;
+}
+
+/* Ensure icon doesn't break WhatsApp's layout */
+.chatmarker-icon {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+}
+
+/* Label badges (for future implementation) */
+.chatmarker-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.chatmarker-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  background-color: #6366F1;
+  white-space: nowrap;
+}
+
+/* Label colors (matching common.css) */
+.chatmarker-label.urgent {
+  background-color: #EF4444;
+}
+
+.chatmarker-label.important {
+  background-color: #F59E0B;
+}
+
+.chatmarker-label.completed {
+  background-color: #10B981;
+}
+
+.chatmarker-label.followup {
+  background-color: #3B82F6;
+}
+
+.chatmarker-label.question {
+  background-color: #8B5CF6;
+}
+
+/* Reminder badge (for future implementation) */
+.chatmarker-reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  margin-left: 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  background-color: #F59E0B;
+  color: white;
+  vertical-align: middle;
+}
+
+.chatmarker-reminder-badge::before {
+  content: '⏰';
+  font-size: 11px;
+}
+
+/* Notes indicator (for future implementation) */
+.chatmarker-notes-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background-color: #6366F1;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.chatmarker-notes-indicator::before {
+  content: '📝';
+  font-size: 9px;
+}
+
+/* Dark mode adjustments for WhatsApp Web dark theme */
+[data-theme="dark"] .chatmarker-icon:not(.marked) .chatmarker-star {
+  color: #8696a0;
+}
+
+[data-theme="dark"] .chatmarker-icon:not(.marked):hover .chatmarker-star {
+  color: #FFD700;
+}
+
+/* Ensure proper positioning within WhatsApp's message structure */
+div[data-testid="msg-meta"] {
+  position: relative;
+}
+
+/* Smooth transitions */
+.chatmarker-icon,
+.chatmarker-star,
+.chatmarker-label,
+.chatmarker-reminder-badge {
+  transition: all 0.2s ease;
+}
+
+/* Prevent icon from interfering with text selection */
+.chatmarker-icon {
+  pointer-events: auto;
+}
+
+/* Make sure icon is visible above other elements */
+.chatmarker-icon {
+  z-index: 10;
+  position: relative;
+}

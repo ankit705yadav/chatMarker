@@ -304,13 +304,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
 
         case 'getMarker':
-          const fetchedMarker = await getMarker(request.messageId);
-          sendResponse({ success: true, marker: fetchedMarker });
+          const fetchedMarker = await getMarker(request.data.messageId);
+          sendResponse({ success: true, data: fetchedMarker });
           break;
 
         case 'getAllMarkers':
-          const markers = await getMarkersArray();
-          sendResponse({ success: true, markers });
+          const allMarkers = await getAllMarkers();
+          sendResponse({ success: true, data: allMarkers });
           break;
 
         case 'createReminder':
