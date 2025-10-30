@@ -1,0 +1,25 @@
+# Chrome Extension
+*.pem
+*.crx
+.DS_Store
+
+# Node modules (if using build tools later)
+node_modules/
+package-lock.json
+
+# Build artifacts
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+Thumbs.db

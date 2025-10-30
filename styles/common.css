@@ -1,0 +1,117 @@
+/**
+ * ChatMarker Common Styles
+ * Shared styles for all platforms
+ */
+
+/* Mark Icon */
+.chatmarker-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 9999;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+  user-select: none;
+}
+
+.chatmarker-icon.visible {
+  opacity: 1;
+}
+
+.chatmarker-icon:hover {
+  transform: scale(1.1);
+}
+
+.chatmarker-icon.marked {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+/* Label Badge */
+.chatmarker-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  margin: 4px 4px 0 0;
+  user-select: none;
+}
+
+.chatmarker-label.urgent { background-color: #EF4444; }
+.chatmarker-label.important { background-color: #F59E0B; }
+.chatmarker-label.completed { background-color: #10B981; }
+.chatmarker-label.followup { background-color: #3B82F6; }
+.chatmarker-label.question { background-color: #8B5CF6; }
+
+/* Note Indicator */
+.chatmarker-note-icon {
+  font-size: 14px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+/* Reminder Badge */
+.chatmarker-reminder {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  z-index: 9998;
+}
+
+/* Context Menu (placeholder for future implementation) */
+.chatmarker-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  min-width: 200px;
+  z-index: 10000;
+}
+
+.chatmarker-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatmarker-menu-item:hover {
+  background-color: #F3F4F6;
+}
+
+/* Message highlight (when navigating to message) */
+.chatmarker-highlight {
+  animation: chatmarker-pulse 1s ease-out;
+}
+
+@keyframes chatmarker-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0.3);
+  }
+}
+
+/* Utilities */
+.chatmarker-hidden {
+  display: none !important;
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatMarker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">⭐</span>
+        <h1 class="logo-text">ChatMarker</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" id="settingsBtn" title="Settings">
+        <span>⚙️</span>
+      </button>
+      <button class="icon-button" id="themeToggle" title="Toggle Dark Mode">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="Search messages..."
+        autocomplete="off"
+      >
+      <button class="clear-search" id="clearSearch" style="display: none;">✕</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-container">
+    <select id="platformFilter" class="filter-select">
+      <option value="all">All Platforms</option>
+      <option value="whatsapp">WhatsApp</option>
+      <option value="messenger">Messenger</option>
+      <option value="instagram">Instagram</option>
+      <option value="linkedin">LinkedIn</option>
+    </select>
+
+    <select id="labelFilter" class="filter-select">
+      <option value="all">All Labels</option>
+      <option value="urgent">Urgent</option>
+      <option value="important">Important</option>
+      <option value="completed">Completed</option>
+      <option value="followup">Follow-up</option>
+      <option value="question">Question</option>
+    </select>
+
+    <select id="dateFilter" class="filter-select">
+      <option value="all">All Time</option>
+      <option value="today">Today</option>
+      <option value="week">Last 7 Days</option>
+      <option value="month">Last 30 Days</option>
+    </select>
+  </div>
+
+  <!-- Message List -->
+  <div class="messages-container" id="messagesContainer">
+    <!-- Loading State -->
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <p>Loading marked messages...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon">⭐</div>
+      <h3 class="empty-title">No marked messages yet</h3>
+      <p class="empty-text">
+        Right-click any message on WhatsApp, Messenger,<br>
+        Instagram, or LinkedIn and select "Mark Message"
+      </p>
+      <button class="btn-secondary" id="tutorialBtn">View Tutorial</button>
+    </div>
+
+    <!-- No Results State -->
+    <div class="no-results-state" id="noResultsState" style="display: none;">
+      <div class="empty-icon">🔍</div>
+      <h3 class="empty-title">No results found</h3>
+      <p class="empty-text">
+        Try adjusting your search or filters
+      </p>
+    </div>
+
+    <!-- Message Cards will be inserted here -->
+    <div class="message-list" id="messageList"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer" id="footer">
+    <div class="footer-text" id="footerText">
+      <span id="resultCount">Showing 0 marked messages</span>
+    </div>
+    <button class="footer-link" id="exportBtn">Export Data</button>
+  </footer>
+
+  <!-- Modals -->
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settingsModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="modal-close" id="closeSettings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>General</h3>
+
+          <div class="setting-item">
+            <label for="themeSelect">Theme</label>
+            <select id="themeSelect" class="filter-select">
+              <option value="auto">Auto (System Default)</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="notificationSound">
+              <span>Enable notification sound</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="compactMode">
+              <span>Compact mode (show more items)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Data</h3>
+          <button class="btn-secondary" id="exportDataBtn">Export All Data</button>
+          <button class="btn-secondary" id="importDataBtn">Import Data</button>
+          <button class="btn-danger" id="clearAllBtn">Clear All Marks</button>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        </div>
+
+        <div class="settings-section">
+          <h3>About</h3>
+          <p class="about-text">
+            <strong>ChatMarker</strong> v1.0.0<br>
+            Mark and organize messages across messaging platforms.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="saveSettings">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note Editor Modal -->
+  <div class="modal" id="noteModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Note</h2>
+        <button class="modal-close" id="closeNote">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="note-preview" id="notePreview">
+          <strong>Message:</strong>
+          <p id="noteMessagePreview"></p>
+        </div>
+        <label for="noteTextarea">Your Note:</label>
+        <textarea
+          id="noteTextarea"
+          class="note-textarea"
+          placeholder="Add your note here..."
+          maxlength="500"
+        ></textarea>
+        <div class="char-counter" id="charCounter">0 / 500</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelNote">Cancel</button>
+        <button class="btn-primary" id="saveNote">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" style="display: none;">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
