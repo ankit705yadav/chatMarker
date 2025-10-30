@@ -1,25 +1,143 @@
-# Chrome Extension
+# Chrome Extension Files
 *.pem
 *.crx
-.DS_Store
+*.zip
+web-ext-artifacts/
 
-# Node modules (if using build tools later)
+# Extension Store Assets (keep source, ignore generated)
+screenshots-compressed/
+promotional-tiles/
+
+# Development & Testing
+test-data/
+debug-logs/
+*.log
+*.log.*
+
+# Node.js (if build tools added later)
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Build artifacts
 dist/
 build/
+.cache/
+.temp/
+tmp/
 
-# IDE
+# IDE & Editors
 .vscode/
 .idea/
+*.sublime-workspace
+*.sublime-project
+.vscode-test/
+*.code-workspace
+
+# Vim
 *.swp
 *.swo
+*.swn
 *~
+.netrwhist
 
-# Logs
-*.log
+# Emacs
+*~
+\#*\#
+.\#*
 
-# OS
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.envrc
+
+# Secrets & Credentials (just in case)
+secrets/
+credentials/
+*.key
+*.pem
+*.cert
+*.crt
+config.local.js
+config.local.json
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Documentation build outputs
+docs/_build/
+site/
+
+# Python (if any tooling added)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+
+# Version managers
+.nvmrc.local
+.node-version
