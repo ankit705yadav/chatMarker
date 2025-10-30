@@ -37,16 +37,19 @@ You should see:
 - ✅ No errors in the extension card
 - ✅ "Service worker" status showing as active
 
-### 3. Test the Popup
+### 3. Test the Sidebar
 
 1. Click the ChatMarker extension icon
-2. You should see the popup with:
+2. A sidebar opens on the right side of the browser
+3. You should see the sidebar with:
    - Header with logo and settings icon
    - Search bar
    - Filter dropdowns
    - Empty state message (since no marks exist yet)
-3. Try clicking the settings icon (⚙️)
-4. Try toggling dark mode (🌙)
+4. Try clicking the settings icon (⚙️)
+5. Try toggling dark mode (🌙)
+
+**Note**: ChatMarker uses Chrome's Side Panel API (requires Chrome 114+)
 
 ### 4. Test Background Script
 
@@ -104,9 +107,9 @@ chatMarker/
 - [ ] Service worker is active
 - [ ] All required permissions granted
 
-### Popup
-- [ ] Popup opens when clicking extension icon
-- [ ] Popup dimensions are 400x600px
+### Sidebar
+- [ ] Sidebar opens when clicking extension icon
+- [ ] Sidebar is full height and responsive width
 - [ ] Header displays correctly with logo
 - [ ] Settings icon clickable
 - [ ] Dark mode toggle works
@@ -180,10 +183,11 @@ await deleteMarker('test123');
 - Ensure all files referenced in manifest exist
 - Check browser console for errors
 
-### Popup Doesn't Open
+### Sidebar Doesn't Open
 - Reload the extension
-- Check for JavaScript errors in popup console (right-click popup → Inspect)
-- Verify popup.html path in manifest
+- Check for JavaScript errors in sidebar console (right-click in sidebar → Inspect)
+- Verify Chrome version is 114+ (required for Side Panel API)
+- Check that sidePanel permission is in manifest.json
 
 ### Service Worker Inactive
 - Click "service worker" link to activate
@@ -250,7 +254,7 @@ for (const marker of testMarkers) {
   await saveMarker(marker);
 }
 
-console.log('Test data created! Open the popup to see it.');
+console.log('Test data created! Open the sidebar to see it.');
 ```
 
 ### Clearing Test Data

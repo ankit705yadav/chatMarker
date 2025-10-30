@@ -26,9 +26,9 @@ ChatMarker is a Chrome Extension (Manifest V3) that enables marking, labeling, a
 - Access to storage functions and extension state
 - All storage.js functions available globally (imported via importScripts)
 
-**Popup Console**:
-- Right-click extension icon → Inspect popup
-- Separate console for popup/popup.js debugging
+**Sidebar Console**:
+- Right-click in the open sidebar → Inspect
+- Separate console for popup/popup.js debugging (files kept in popup/ for organization)
 
 **Content Script Console**:
 - Open target platform (WhatsApp Web, Messenger, etc.)
@@ -77,12 +77,13 @@ ChatMarker operates in three isolated JavaScript contexts that communicate via C
    - Performs storage operations
    - **Important**: Uses `importScripts('utils/storage.js')` to load storage functions
 
-2. **Popup Context** (`popup/`)
-   - Ephemeral UI context (recreated each time popup opens)
+2. **Sidebar Context** (`popup/`)
+   - Persistent UI context (side panel stays open)
    - Displays marked messages with search/filter
    - Settings management
    - Communicates with background via `chrome.runtime.sendMessage()`
    - Loads storage.js via `<script>` tag (not as module)
+   - **Note**: Files kept in `popup/` directory for code organization
 
 3. **Content Script Context** (per platform)
    - Injected into each messaging platform page
@@ -425,7 +426,7 @@ After Day 2, test marking workflow:
 2. **Wrong message passing pattern**: Content scripts can't access storage directly
 3. **CSS specificity conflicts**: Platform websites have high-specificity selectors
 4. **Service worker lifecycle**: Background context can restart; don't rely on in-memory state
-5. **Popup ephemeral nature**: Popup state is lost when closed; always read from storage
+5. **Sidebar state management**: While sidebar persists longer than popup, don't rely on in-memory state; always read from storage
 6. **MutationObserver performance**: Throttle/debounce callbacks to avoid lag on busy pages
 
 ## Design System Quick Reference
