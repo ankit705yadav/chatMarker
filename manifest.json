@@ -8,7 +8,8 @@
     "notifications",
     "alarms",
     "activeTab",
-    "scripting"
+    "scripting",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*",
@@ -47,6 +48,9 @@
     }
   ],
   "action": {
-    "default_popup": "popup/popup.html"
+    "default_title": "ChatMarker - Open Sidebar"
+  },
+  "side_panel": {
+    "default_path": "popup/popup.html"
   }
 }

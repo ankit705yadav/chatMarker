@@ -26,6 +26,13 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 /**
+ * Handle extension icon click - open side panel
+ */
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ windowId: tab.windowId });
+});
+
+/**
  * Initialize extension on first install
  */
 async function initializeExtension() {
