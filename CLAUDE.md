@@ -2,213 +2,190 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+---
 
-ChatMarker is a Chrome Extension (Manifest V3) that enables marking, labeling, and setting reminders for messages across WhatsApp Web, Facebook Messenger, Instagram, and LinkedIn. This is an active development project following a 5-day implementation timeline.
+## Quick Reference
 
-**Current Status**: Day 1 Complete - Foundation & Core Infrastructure
-**Next Phase**: Day 2 - WhatsApp Web integration with full marking functionality
+**Project**: ChatMarker - Chrome Extension (Manifest V3) for marking messages across WhatsApp, Messenger, Instagram, LinkedIn
+**Current Status**: Day 1 Complete - Foundation ready, WhatsApp integration pending
+**Architecture**: Three isolated contexts (Background Worker, Sidebar UI, Content Scripts)
+**Key Constraint**: Content scripts CANNOT access storage directly - must use message passing
 
-## Development Environment
+---
 
-### Loading the Extension in Chrome
+## Getting Started Immediately
 
+### 1. Load Extension
 ```bash
-# Navigate to chrome://extensions/
-# Enable "Developer mode"
-# Click "Load unpacked" → Select the chatMarker/ directory
+# chrome://extensions/ → Enable Developer Mode → Load Unpacked → Select chatMarker/
 ```
 
-### Testing Components
+### 2. Open Developer Consoles
+- **Background**: chrome://extensions/ → Click "service worker" under ChatMarker
+- **Sidebar**: Click extension icon → Right-click sidebar → Inspect
+- **Content Script**: Open WhatsApp Web → F12 → Console tab
 
-**Background Service Worker Console**:
-- On chrome://extensions/, click "service worker" link under ChatMarker
-- Access to storage functions and extension state
-- All storage.js functions available globally (imported via importScripts)
-
-**Sidebar Console**:
-- Right-click in the open sidebar → Inspect
-- Separate console for popup/popup.js debugging (files kept in popup/ for organization)
-
-**Content Script Console**:
-- Open target platform (WhatsApp Web, Messenger, etc.)
-- F12 DevTools → Check for content script load messages
-- Each platform has isolated console context
-
-### Creating Test Data
-
-Open background service worker console:
-
+### 3. Create Test Data (Background Console)
 ```javascript
-// Create test markers to populate the popup
 await saveMarker({
-  messageId: 'whatsapp:test1',
+  messageId: 'whatsapp:test1:' + Date.now(),
   platform: 'whatsapp',
   chatId: 'chat123',
   chatName: 'John Doe',
   sender: 'John Doe',
-  messageText: 'Test message content here',
-  labels: ['important', 'followup'],
-  notes: 'Optional note text',
-  timestamp: Date.now(),
-  createdAt: Date.now(),
-  updatedAt: Date.now()
+  messageText: 'Test message',
+  labels: ['important'],
+  timestamp: Date.now()
 });
 
-// View all markers
-const markers = await getMarkersArray();
-console.log(markers);
-
-// Clean up
-await clearAllMarkers();
+// View all: await getMarkersArray()
+// Clean up: await clearAllMarkers()
 ```
 
-## Architecture Overview
+### 4. Verify Setup
+- Background console shows: `[ChatMarker] Background service worker loaded`
+- Sidebar opens when clicking extension icon
+- WhatsApp Web console shows: `[ChatMarker] WhatsApp content script loaded`
 
-### Three-Context System
+---
 
-ChatMarker operates in three isolated JavaScript contexts that communicate via Chrome's message passing:
+## Critical Architecture Concepts
 
-1. **Background Service Worker** (`background.js`)
-   - Persistent extension context
-   - Manages reminders via chrome.alarms API
-   - Handles browser notifications
-   - Routes messages between popup and content scripts
-   - Performs storage operations
-   - **Important**: Uses `importScripts('utils/storage.js')` to load storage functions
+### The Three-Context System
 
-2. **Sidebar Context** (`popup/`)
-   - Persistent UI context (side panel stays open)
-   - Displays marked messages with search/filter
-   - Settings management
-   - Communicates with background via `chrome.runtime.sendMessage()`
-   - Loads storage.js via `<script>` tag (not as module)
-   - **Note**: Files kept in `popup/` directory for code organization
+ChatMarker runs in **three completely isolated JavaScript environments**:
 
-3. **Content Script Context** (per platform)
-   - Injected into each messaging platform page
-   - DOM manipulation for mark icons and labels
-   - Observes page changes via MutationObserver
-   - Isolated from page's JavaScript
-   - Communicates with background for storage operations
+```
+┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
+│   Background    │◄────────┤   Sidebar UI     │         │ Content Scripts │
+│  Service Worker │ Message │   (popup/)       │         │  (per platform) │
+│                 │ Passing │                  │         │                 │
+│ - Storage ops   │────────►│ - Display marks  │         │ - DOM inject    │
+│ - Reminders     │         │ - User input     │         │ - Observe page  │
+│ - Notifications │         │ - Settings       │         │ - Extract data  │
+└─────────────────┘         └──────────────────┘         └─────────────────┘
+                                                                   │
+                                                                   │ Message
+                                                                   │ Passing
+                                                                   ▼
+                                                          ┌─────────────────┐
+                                                          │   Background    │
+                                                          │ (for storage)   │
+                                                          └─────────────────┘
+```
 
-### Storage Architecture
+**Key Point**: Content scripts CANNOT call storage functions directly. They MUST send messages to background worker.
 
-**Storage Layer** (`utils/storage.js`):
-- Unified wrapper around chrome.storage.local API
-- **Not a module** - loaded via importScripts or script tag
-- All functions async/await based
-- 25+ CRUD functions for markers, reminders, settings, labels
+### Storage Access Patterns
 
-**Data Structures**:
+| Context | How to Access Storage | Example |
+|---------|----------------------|---------|
+| **Background** | Direct (via importScripts) | `const marker = await saveMarker(data)` |
+| **Sidebar** | Direct (via script tag) | `const markers = await getMarkersArray()` |
+| **Content Scripts** | Message passing only | `chrome.runtime.sendMessage({ action: 'saveMarker', data })` |
 
+---
+
+## Core Data Structures
+
+### Marker Object
 ```javascript
-// Marker Object
 {
-  messageId: 'platform:chatId:sender:timestamp:hash',
+  messageId: 'platform:chatId:sender:timestamp:contentHash',  // Composite unique ID
   platform: 'whatsapp' | 'messenger' | 'instagram' | 'linkedin',
-  chatId: string,
-  chatName: string,
-  sender: string,
-  messageText: string,
-  labels: ['urgent', 'important', ...],
-  notes: string,
+  chatId: string,           // From URL or DOM
+  chatName: string,         // Display name
+  sender: string,           // Who sent it
+  messageText: string,      // Message content
+  labels: ['urgent', ...],  // Color-coded tags
+  notes: string,            // User's private note
   priority: 'high' | 'medium' | 'low',
   starred: boolean,
-  timestamp: number,
-  createdAt: number,
-  updatedAt: number
-}
-
-// Reminder Object
-{
-  reminderId: 'reminder_timestamp_random',
-  messageId: string,
-  reminderTime: number,
-  notificationText: string,
-  active: boolean,
-  recurring: boolean
+  timestamp: number,        // When message was sent
+  createdAt: number,        // When marked
+  updatedAt: number         // Last modified
 }
 ```
 
-**Storage Keys**:
-- `markers` - Object keyed by messageId
-- `reminders` - Object keyed by reminderId
-- `settings` - User preferences
-- `labels` - Custom label definitions
-
-### Message ID Generation
-
-Critical for tracking messages across sessions:
-
+### Message ID Generation Strategy
 ```javascript
 generateMessageId(platform, chatId, messageContent, sender, timestamp)
-// Returns: 'platform:chatId:sender:timestamp:contentHash'
+// Returns: 'whatsapp:chat123:John:1234567890:a3f9c2'
+//          └─────┬─────┘ └──┬──┘ └──┬──┘ └────┬────┘ └─┬──┘
+//           platform   chatId  sender  timestamp  content hash
 ```
 
-The hash is based on first 100 chars of message content. This composite ID allows:
-- Tracking messages without stable DOM IDs
-- Identifying same message across page reloads
-- Deduplication
+**Why Composite IDs?**
+- Messaging platforms don't provide stable message IDs
+- DOM elements get recreated dynamically
+- Need to track same message across page reloads
+- Hash of first 100 chars ensures uniqueness
 
-### Message Passing Patterns
+### Storage Keys
+- `markers` → Object keyed by messageId
+- `reminders` → Object keyed by reminderId
+- `settings` → User preferences
+- `labels` → Custom label definitions
 
-**Popup → Background**:
+---
+
+## Message Passing Protocols
+
+### Sidebar → Background
 ```javascript
 const response = await chrome.runtime.sendMessage({
-  action: 'saveMarker',
+  action: 'saveMarker',    // or: 'deleteMarker', 'getAllMarkers', 'updateSettings'
   data: markerObject
 });
+
+if (response.success) {
+  // Handle success
+}
 ```
 
-**Content Script → Background**:
+### Content Script → Background
 ```javascript
 chrome.runtime.sendMessage({
-  action: 'createReminder',
-  data: reminderObject
+  action: 'saveMarker',
+  data: markerData
 }, (response) => {
-  if (response.success) { /* ... */ }
+  if (response.success) {
+    console.log('Marker saved:', response.marker);
+  }
 });
 ```
 
-**Background message handler** in background.js listens for these actions:
+### Background Message Handler
+Listens for actions in `background.js`:
 - `saveMarker`, `deleteMarker`, `getMarker`, `getAllMarkers`
 - `createReminder`, `deleteReminder`
 - `updateSettings`
 - `navigateToMessage`
 
-## Content Script Implementation Strategy
+---
 
-### Platform DOM Challenges
+## Content Script Implementation Pattern
 
-Each platform (WhatsApp, Messenger, Instagram, LinkedIn) has:
-- Dynamic, frequently-changing class names
-- React/Virtual DOM rendering
-- Dynamic message loading (virtual scrolling)
-- No stable message IDs
+### Standard Flow for Platform Integration
 
-### Standard Content Script Pattern
-
-When implementing platform content scripts (currently placeholders):
-
-1. **Selectors Configuration**
+**1. Define Selectors** (platform-specific, will change frequently)
 ```javascript
 const SELECTORS = {
-  chatContainer: 'div[data-tab="6"]',  // Platform-specific
-  messageList: 'div.message-list',
-  message: 'div[class*="message-"]',
-  messageText: 'span.selectable-text',
-  sender: 'span[class*="author"]',
-  timestamp: 'span[data-testid="msg-time"]'
+  chatContainer: 'div[data-tab="6"]',           // Main chat area
+  messageList: 'div.message-list',              // Scrollable message container
+  message: 'div[class*="message-"]',            // Individual message element
+  messageText: 'span.selectable-text',          // Text content
+  sender: 'span[class*="author"]',              // Sender name
+  timestamp: 'span[data-testid="msg-time"]'    // Timestamp
 };
 ```
 
-2. **MutationObserver Setup**
+**2. Set Up MutationObserver** (watch for new messages)
 ```javascript
 const observer = new MutationObserver((mutations) => {
-  // Detect new messages
+  // Detect new messages added to DOM
   // Apply marks to new messages
-  // Re-inject icons if needed
+  // Re-inject icons if page structure changes
 });
 
 observer.observe(chatContainer, {
@@ -217,223 +194,267 @@ observer.observe(chatContainer, {
 });
 ```
 
-3. **Message Enhancement Flow**
-   - Extract message data from DOM
-   - Generate messageId
-   - Check storage for existing mark
-   - Inject mark icon (if marked)
-   - Inject labels and reminder badges
-   - Add event listeners for mark/unmark
+**3. Process Each Message**
+```javascript
+async function enhanceMessage(messageElement) {
+  // 1. Extract data from DOM
+  const messageData = extractMessageData(messageElement);
 
-4. **Icon Injection**
-   - Position: absolute within message container
-   - CSS classes from styles/common.css
-   - Show on hover if unmarked
-   - Always visible if marked
+  // 2. Generate unique ID
+  const messageId = generateMessageId(
+    'whatsapp',
+    messageData.chatId,
+    messageData.text,
+    messageData.sender,
+    messageData.timestamp
+  );
 
-### Platform-Specific Files
+  // 3. Check if already marked (via background)
+  const isMarked = await checkIfMarked(messageId);
 
-- `content-scripts/whatsapp.js` + `styles/whatsapp.css` - Day 2 implementation
-- `content-scripts/messenger.js` + `styles/messenger.css` - Day 3
-- `content-scripts/instagram.js` + `styles/instagram.css` - Day 3
-- `content-scripts/linkedin.js` + `styles/linkedin.css` - Day 3
+  // 4. Inject mark icon
+  if (isMarked) {
+    injectMarkIcon(messageElement, true);
+    injectLabels(messageElement, isMarked.labels);
+  } else {
+    injectMarkIcon(messageElement, false); // Show on hover
+  }
 
-Common styles in `styles/common.css` - mark icons, labels, badges, animations
+  // 5. Add event listeners
+  attachMarkToggleListener(messageElement, messageId);
+}
+```
 
-## CSS Architecture
+**4. Icon Injection**
+```javascript
+function injectMarkIcon(messageElement, isMarked) {
+  const icon = document.createElement('span');
+  icon.className = 'chatmarker-icon' + (isMarked ? ' marked' : '');
+  icon.textContent = '⭐';
+  icon.style.position = 'absolute';
+  icon.style.top = '4px';
+  icon.style.right = '4px';
 
-### Variable System
+  messageElement.style.position = 'relative';
+  messageElement.appendChild(icon);
+}
+```
 
-All colors, spacing, shadows defined as CSS variables in `popup/popup.css`:
+### Platform Challenges
+
+| Platform | Challenge | Solution |
+|----------|-----------|----------|
+| **WhatsApp** | Dynamic class names (webpack hashing) | Use data attributes, aria labels where possible |
+| **Messenger** | React virtual DOM, frequent rerenders | Re-apply marks on mutations, use stable selectors |
+| **Instagram** | Limited web interface vs mobile | Adapt to simpler structure, check DOM carefully |
+| **LinkedIn** | Multiple message views (feed vs inbox) | Detect context, use different selectors per view |
+
+---
+
+## File Organization & Load Order
+
+### Background Service Worker
+```javascript
+// background.js (line 1)
+importScripts('utils/storage.js');  // MUST be first
+// Now all storage functions available globally
+```
+
+### Sidebar HTML
+```html
+<!-- popup/popup.html -->
+<script src="../utils/storage.js"></script>  <!-- MUST load first -->
+<script src="popup.js"></script>              <!-- Then UI logic -->
+```
+
+### Content Scripts (manifest.json)
+```json
+{
+  "js": ["content-scripts/whatsapp.js"],
+  "css": ["styles/common.css", "styles/whatsapp.css"]
+  // common.css loads first for base styles
+}
+```
+
+**Why This Matters**: `storage.js` is NOT a module. It defines global functions. Loading order is critical.
+
+---
+
+## Styling Architecture
+
+### CSS Variable System
+All design tokens in `popup/popup.css`:
 ```css
 :root {
+  /* Colors */
   --color-primary: #6366F1;
+  --color-urgent: #EF4444;
+  --color-important: #F59E0B;
+
+  /* Spacing */
   --space-base: 16px;
+
+  /* Radius */
   --radius-md: 6px;
-  /* ... */
 }
 
 body.dark-mode {
   --color-background: #0F172A;
-  /* ... overrides */
+  --color-text-primary: #F1F5F9;
+  /* Override light mode values */
 }
 ```
 
-### Label Colors
+### Label Colors (Consistent Everywhere)
+```css
+.label-badge.urgent { background: #EF4444; }      /* Red */
+.label-badge.important { background: #F59E0B; }   /* Yellow */
+.label-badge.completed { background: #10B981; }   /* Green */
+.label-badge.followup { background: #3B82F6; }    /* Blue */
+.label-badge.question { background: #8B5CF6; }    /* Purple */
+```
 
-Consistent across popup and content scripts:
-- `urgent`: #EF4444 (red)
-- `important`: #F59E0B (yellow)
-- `completed`: #10B981 (green)
-- `followup`: #3B82F6 (blue)
-- `question`: #8B5CF6 (purple)
-
-Applied via `.label-badge.{labelId}` classes
-
-### Dark Mode
-
-Toggle via `document.body.classList.toggle('dark-mode')`. All colors switch via CSS variable overrides. Settings persist theme choice in storage.
-
-## Key Implementation Notes
-
-### Storage Function Usage
-
-**In background.js**:
+### Dark Mode Toggle
 ```javascript
-// Direct function calls (imported via importScripts)
-const marker = await saveMarker(data);
-const allMarkers = await getAllMarkers();
+document.body.classList.toggle('dark-mode');
+// All CSS variables automatically switch via :root overrides
 ```
 
-**In popup.js**:
-```javascript
-// Also direct (loaded via script tag in popup.html)
-const markers = await getMarkersArray();
-await deleteMarker(messageId);
-```
+---
 
-**In content scripts**:
-```javascript
-// Must go through background worker
-chrome.runtime.sendMessage({
-  action: 'saveMarker',
-  data: markerData
-}, (response) => {
-  // Handle response
-});
-```
+## Debugging Guide
 
-### Reminder System
+### Common Issues & Solutions
 
-**Creating Reminders**:
-1. Save reminder to storage via `saveReminder()`
-2. Create Chrome alarm: `chrome.alarms.create(reminderId, { when: timestamp })`
-3. Background listens for alarm
-4. Shows notification via chrome.notifications API
-5. Clicking notification navigates to message
+**❌ "saveMarker is not defined" in Background Console**
+- ✅ Check `importScripts('utils/storage.js')` is at top of background.js
+- ✅ Verify file path is correct (no typos)
+- ✅ Reload extension completely
 
-**Snooze Function**:
-- Updates reminder time
-- Recreates alarm
-- Keeps reminder active
+**❌ "saveMarker is not defined" in Content Script**
+- ✅ You CANNOT call storage functions directly from content scripts
+- ✅ Use message passing: `chrome.runtime.sendMessage({ action: 'saveMarker', data })`
 
-### Navigation to Messages
+**❌ Content Script Not Loading**
+- ✅ Check manifest.json `host_permissions` includes the URL
+- ✅ Verify `matches` pattern in content_scripts section
+- ✅ Hard refresh page (Ctrl+Shift+R)
+- ✅ Check DevTools Console for injection errors
 
-When user clicks marked message in popup or notification:
-1. Background receives `navigateToMessage` action
-2. Queries for existing tab with platform URL
-3. If found: activates tab, sends message to content script to scroll
-4. If not found: creates new tab
-5. Content script listens for `scrollToMessage` and highlights target
+**❌ Sidebar Blank/Broken**
+- ✅ Right-click in sidebar → Inspect → Check Console tab
+- ✅ Verify script load order in popup.html (storage.js first)
+- ✅ Check for JavaScript errors
 
-## Development Workflow
+**❌ Marks Not Persisting**
+- ✅ Using `chrome.storage.local` (not sessionStorage or localStorage)
+- ✅ Check Chrome storage quota: `const stats = await getStorageStats()`
+- ✅ Verify async/await used correctly (missing await?)
 
-### Reloading After Changes
+**❌ Service Worker Shows "Inactive"**
+- ✅ This is normal! Service workers sleep when idle
+- ✅ Click "service worker" text to activate
+- ✅ Using extension (opening sidebar) auto-activates it
 
-**JavaScript/HTML changes**:
-- Go to chrome://extensions/
-- Click reload icon on ChatMarker card
-- If popup is open, close and reopen it
+### Reload Strategies
 
-**CSS-only changes**:
-- Popup CSS: Just close/reopen popup
-- Content script CSS: Hard refresh page (Ctrl+Shift+R)
+| Change Type | How to Reload |
+|-------------|---------------|
+| JavaScript/HTML | chrome://extensions/ → Reload icon |
+| CSS only (sidebar) | Close and reopen sidebar |
+| CSS only (content) | Hard refresh page (Ctrl+Shift+R) |
+| manifest.json | Reload extension (sometimes remove & re-add) |
 
-**Manifest changes**:
-- Must reload extension
-- Sometimes requires removing and re-adding
+---
 
-### Debugging Tips
+## Common Pitfalls (Must Read!)
 
-**"Function not defined" errors in background console**:
-- Check `importScripts('utils/storage.js')` is present
-- Verify file path is correct
+1. **Forgetting async/await**: All storage functions return Promises. Missing `await` causes silent failures.
 
-**Content script not loading**:
-- Check manifest.json host_permissions match URL
-- Verify matches pattern includes current URL
-- Check browser console for injection errors
+2. **Wrong message passing pattern**: Content scripts CANNOT access storage. Always go through background worker.
 
-**Popup blank/broken**:
-- Right-click icon → Inspect
-- Check console for errors
-- Verify all script paths in popup.html
+3. **CSS specificity conflicts**: Messaging platforms use high-specificity selectors. Use `!important` or very specific selectors for marks.
 
-**Storage not persisting**:
-- Use chrome.storage.local (not sync) for large data
-- Check Chrome storage quota not exceeded
-- Verify async/await usage
+4. **Service worker lifecycle**: Background script can restart anytime. Never rely on in-memory state. Always persist to storage.
 
-## File Load Order & Dependencies
+5. **Sidebar state**: While sidebar persists longer than popups, don't cache data. Always read from storage on load.
 
-**Background Service Worker**:
-```javascript
-importScripts('utils/storage.js');
-// Then all storage functions available
-```
+6. **MutationObserver performance**: Platforms generate many DOM mutations. Throttle/debounce callbacks to avoid lag:
+   ```javascript
+   let timeout;
+   const observer = new MutationObserver(() => {
+     clearTimeout(timeout);
+     timeout = setTimeout(processMessages, 300);
+   });
+   ```
 
-**Popup HTML**:
-```html
-<script src="../utils/storage.js"></script>
-<script src="popup.js"></script>
-<!-- storage.js MUST load before popup.js -->
-```
+7. **Message ID collisions**: Two messages with identical first 100 chars and same timestamp = same ID. Add additional entropy if needed.
 
-**Content Scripts** (in manifest.json):
-```json
-"js": ["content-scripts/whatsapp.js"],
-"css": ["styles/common.css", "styles/whatsapp.css"]
-<!-- common.css loads first for base styles -->
-```
+---
 
-## Project Timeline Context
+## Testing Workflow
 
-**Day 1** (Complete): Foundation - manifest, storage, background, popup UI
-**Day 2** (Next): WhatsApp Web - full marking functionality end-to-end
-**Day 3**: Extend to Messenger/Instagram/LinkedIn + labels & notes UI
-**Day 4**: Reminders system, keyboard shortcuts, UX polish
-**Day 5**: Testing, bug fixes, advanced features
+### Manual Testing Checklist
+1. **Load extension** → chrome://extensions/ → Load unpacked
+2. **Create test data** → Background console → Run test marker code
+3. **Verify sidebar** → Click icon → See marks display
+4. **Test on platform** → Open WhatsApp Web → Check content script loads
+5. **Check consoles** → All three contexts should have no errors
 
-When implementing new features, follow the day's plan in TIMELINE.md. Code is structured to build incrementally.
-
-## Reference Documentation
-
-- **FEATURES.md**: Complete feature specifications (180+ features categorized)
-- **TIMELINE.md**: Detailed day-by-day implementation plan with time estimates
-- **DESIGN.md**: Visual design specs, wireframes, color schemes, component specs
-- **README.md**: Installation, testing procedures, troubleshooting
-
-## Testing Considerations
-
-Manual testing required (no automated test framework yet):
-1. Load extension in Chrome
-2. Create test data via background console
-3. Verify popup displays correctly
-4. Test on actual platform websites
-5. Check all three contexts' consoles for errors
-
-After Day 2, test marking workflow:
+### After Implementing Content Scripts
 1. Open WhatsApp Web
-2. Right-click message → verify context menu (if implemented)
-3. Mark message → verify icon appears
-4. Check popup shows marked message
-5. Click in popup → verify navigation works
-6. Reload page → verify marks persist
+2. Right-click message → Context menu appears (if implemented)
+3. Mark message → Icon appears on message
+4. Open sidebar → Marked message appears in list
+5. Click in sidebar → Navigates to message
+6. Reload page → Marks persist
 
-## Common Pitfalls
+---
 
-1. **Forgetting async/await**: All storage functions return Promises
-2. **Wrong message passing pattern**: Content scripts can't access storage directly
-3. **CSS specificity conflicts**: Platform websites have high-specificity selectors
-4. **Service worker lifecycle**: Background context can restart; don't rely on in-memory state
-5. **Sidebar state management**: While sidebar persists longer than popup, don't rely on in-memory state; always read from storage
-6. **MutationObserver performance**: Throttle/debounce callbacks to avoid lag on busy pages
+## Project Timeline Reference
 
-## Design System Quick Reference
+- **Day 1** ✅ Foundation (manifest, storage, background, sidebar UI)
+- **Day 2** 🔄 WhatsApp Web marking (current focus)
+- **Day 3** ⏳ Messenger/Instagram/LinkedIn + labels/notes
+- **Day 4** ⏳ Reminders, keyboard shortcuts, UX polish
+- **Day 5** ⏳ Testing, bug fixes, advanced features
 
-**Spacing**: 4px (xs), 8px (sm), 12px (md), 16px (base), 24px (lg)
-**Colors**: Primary #6366F1, Text #111827 (light) / #F1F5F9 (dark)
-**Border Radius**: 4px (sm), 6px (md), 8px (lg)
-**Transitions**: 150ms (fast), 250ms (base)
+See **TIMELINE.md** for detailed task breakdown with time estimates.
 
-Follow DESIGN.md for detailed specifications including typography, shadows, component dimensions.
+---
+
+## Additional Documentation
+
+- **FEATURES.md**: 180+ features across 4 categories (Essential, Core, UX, Smart)
+- **DESIGN.md**: Visual specs, wireframes, colors, component dimensions
+- **README.md**: Installation, testing procedures, troubleshooting
+- **TEST.md**: 60+ manual test cases for all implemented features
+
+---
+
+## Design System Cheat Sheet
+
+```
+Spacing:   xs(4px)  sm(8px)  md(12px)  base(16px)  lg(24px)  xl(32px)
+Radius:    sm(4px)  md(6px)  lg(8px)
+Colors:    Primary(#6366F1)  Text-Light(#111827)  Text-Dark(#F1F5F9)
+Animation: fast(150ms)  base(250ms)
+```
+
+For complete design system, see **DESIGN.md**.
+
+---
+
+## Extension Metadata
+
+**Name**: ChatMarker
+**Version**: 1.0.0
+**Manifest**: V3
+**Permissions**: storage, notifications, alarms, activeTab, scripting, sidePanel
+**Min Chrome**: 114+ (for Side Panel API)
+**Status**: Active Development (Day 1 Complete)
+
+---
+
+*Last Updated: 2025-10-30*
+*Optimized for: Claude Code productivity*
