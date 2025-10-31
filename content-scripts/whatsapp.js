@@ -48,20 +48,36 @@ async function init() {
   try {
     // Wait for WhatsApp to fully load - increased timeout for slow connections
     console.log('[ChatMarker] Waiting for #main element...');
-    await waitForElement(SELECTORS.chatContainer, 30000);
-    console.log('[ChatMarker] #main found!');
+
+    // First wait for app to load
+    await waitForElement('#app', 10000);
+    console.log('[ChatMarker] WhatsApp app loaded');
+
+    // Then wait for main chat area (may not exist if no chat is open)
+    try {
+      await waitForElement(SELECTORS.chatContainer, 5000);
+      console.log('[ChatMarker] #main found - chat is open');
+    } catch (e) {
+      console.log('[ChatMarker] No chat open yet - will activate when chat opens');
+      // Don't fail - just wait for user to open a chat
+    }
 
     // Wait a bit more for messages to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Load marked messages from storage
     await loadMarkedMessages();
 
-    // Process existing messages
-    await processAllMessages();
-
-    // Set up observer for new messages
-    setupMutationObserver();
+    // Process existing messages if chat is open
+    const mainExists = document.querySelector(SELECTORS.chatContainer);
+    if (mainExists) {
+      await processAllMessages();
+      // Set up observer for new messages
+      setupMutationObserver();
+    } else {
+      // Wait for user to open a chat, then set up
+      waitForChatToOpen();
+    }
 
     // Listen for messages from background
     chrome.runtime.onMessage.addListener(handleBackgroundMessage);
@@ -108,6 +124,32 @@ function waitForElement(selector, timeout = 5000) {
       observer.disconnect();
       reject(new Error(`Timeout waiting for ${selector}`));
     }, timeout);
+  });
+}
+
+/**
+ * Wait for user to open a chat
+ */
+function waitForChatToOpen() {
+  console.log('[ChatMarker] Waiting for user to open a chat...');
+
+  const observer = new MutationObserver(() => {
+    const main = document.querySelector(SELECTORS.chatContainer);
+    if (main) {
+      console.log('[ChatMarker] Chat opened! Processing messages...');
+      observer.disconnect();
+
+      // Process messages and set up observer
+      setTimeout(() => {
+        processAllMessages();
+        setupMutationObserver();
+      }, 1000);
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
   });
 }
 
@@ -224,14 +266,14 @@ function extractMessageData(messageElement) {
 
 /**
  * Generate unique message ID
+ * Use WhatsApp's data-id as the primary stable identifier
  */
 function generateMessageId(messageData) {
-  const { platform, chatId, sender, timestamp, messageText } = messageData;
+  const { platform, dataId } = messageData;
 
-  // Simple hash function for content
-  const contentHash = simpleHash(messageText.substring(0, 100));
-
-  return `${platform}:${chatId}:${sender}:${timestamp}:${contentHash}`;
+  // Use WhatsApp's data-id which is stable across page loads
+  // Format: whatsapp:dataId (e.g., whatsapp:true_123@c.us_ABC123)
+  return `${platform}:${dataId}`;
 }
 
 /**
@@ -280,10 +322,39 @@ function injectMarkIcon(messageElement, messageId, isMarked = false) {
 
   iconContainer.appendChild(icon);
 
-  // Add click handler
+  // Add click handler - long press or right click for labels
+  let pressTimer;
+
+  iconContainer.addEventListener('mousedown', (e) => {
+    if (e.button === 0) { // Left click
+      pressTimer = setTimeout(() => {
+        // Long press - show label selector
+        e.stopPropagation();
+        showLabelSelector(messageElement, messageId, iconContainer);
+      }, 500);
+    }
+  });
+
+  iconContainer.addEventListener('mouseup', (e) => {
+    if (e.button === 0) {
+      clearTimeout(pressTimer);
+    }
+  });
+
+  iconContainer.addEventListener('mouseleave', () => {
+    clearTimeout(pressTimer);
+  });
+
   iconContainer.addEventListener('click', (e) => {
     e.stopPropagation();
     handleMarkToggle(messageElement, messageId);
+  });
+
+  // Right-click for label menu
+  iconContainer.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showLabelSelector(messageElement, messageId, iconContainer);
   });
 
   // Find the best place to inject the icon
@@ -431,6 +502,159 @@ function updateMarkIcon(messageElement, messageId, isMarked) {
 }
 
 /**
+ * Show label selector popup
+ */
+function showLabelSelector(messageElement, messageId, iconContainer) {
+  // Close any existing label selector
+  const existing = document.querySelector('.chatmarker-label-selector');
+  if (existing) existing.remove();
+
+  // Create label selector
+  const selector = document.createElement('div');
+  selector.className = 'chatmarker-label-selector';
+
+  // Define label options
+  const labels = [
+    { name: 'urgent', color: '#EF4444', icon: '🔴', text: 'Urgent' },
+    { name: 'important', color: '#F59E0B', icon: '🟡', text: 'Important' },
+    { name: 'completed', color: '#10B981', icon: '🟢', text: 'Completed' },
+    { name: 'followup', color: '#3B82F6', icon: '🔵', text: 'Follow-up' },
+    { name: 'question', color: '#8B5CF6', icon: '🟣', text: 'Question' }
+  ];
+
+  // Get current labels for this message
+  const marker = markedMessages.get(messageId);
+  const currentLabels = marker ? marker.labels || [] : [];
+
+  // Create label options
+  labels.forEach(label => {
+    const option = document.createElement('div');
+    option.className = 'chatmarker-label-option';
+    if (currentLabels.includes(label.name)) {
+      option.classList.add('selected');
+    }
+
+    option.innerHTML = `
+      <span class="label-icon">${label.icon}</span>
+      <span class="label-text">${label.text}</span>
+    `;
+
+    option.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleLabel(messageElement, messageId, label.name);
+      option.classList.toggle('selected');
+    });
+
+    selector.appendChild(option);
+  });
+
+  // Position the selector near the icon
+  const rect = iconContainer.getBoundingClientRect();
+  selector.style.position = 'fixed';
+  selector.style.top = `${rect.bottom + 5}px`;
+  selector.style.left = `${rect.left}px`;
+  selector.style.zIndex = '10000';
+
+  document.body.appendChild(selector);
+
+  // Close on outside click
+  setTimeout(() => {
+    const closeHandler = (e) => {
+      if (!selector.contains(e.target)) {
+        selector.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    document.addEventListener('click', closeHandler);
+  }, 100);
+}
+
+/**
+ * Toggle a label on a message
+ */
+async function toggleLabel(messageElement, messageId, labelName) {
+  const marker = markedMessages.get(messageId);
+  if (!marker) {
+    console.error('[ChatMarker] Cannot add label - message not marked');
+    return;
+  }
+
+  // Toggle label in array
+  const labels = marker.labels || [];
+  const index = labels.indexOf(labelName);
+
+  if (index > -1) {
+    // Remove label
+    labels.splice(index, 1);
+  } else {
+    // Add label
+    labels.push(labelName);
+  }
+
+  // Update marker
+  marker.labels = labels;
+  marker.updatedAt = Date.now();
+
+  // Save to storage
+  chrome.runtime.sendMessage(
+    {
+      action: 'saveMarker',
+      data: marker
+    },
+    (response) => {
+      if (response && response.success) {
+        // Update local state
+        markedMessages.set(messageId, marker);
+
+        // Update label badges on message
+        updateLabelBadges(messageElement, messageId);
+
+        console.log('[ChatMarker] Labels updated:', messageId, labels);
+      } else {
+        console.error('[ChatMarker] Failed to save labels:', response?.error);
+      }
+    }
+  );
+}
+
+/**
+ * Update label badges display on a message
+ */
+function updateLabelBadges(messageElement, messageId) {
+  const marker = markedMessages.get(messageId);
+  const labels = marker ? marker.labels || [] : [];
+
+  // Remove existing label container
+  const existingLabels = messageElement.querySelector('.chatmarker-labels');
+  if (existingLabels) existingLabels.remove();
+
+  // If no labels, nothing to show
+  if (labels.length === 0) return;
+
+  // Create label container
+  const labelContainer = document.createElement('div');
+  labelContainer.className = 'chatmarker-labels';
+
+  // Add label badges
+  labels.forEach(labelName => {
+    const badge = document.createElement('span');
+    badge.className = `chatmarker-label ${labelName}`;
+    badge.textContent = labelName.charAt(0).toUpperCase() + labelName.slice(1);
+    labelContainer.appendChild(badge);
+  });
+
+  // Find where to inject labels (below the message text)
+  const textContainer = messageElement.querySelector('.copyable-text') ||
+                       messageElement.querySelector('.selectable-text');
+
+  if (textContainer && textContainer.parentElement) {
+    textContainer.parentElement.appendChild(labelContainer);
+  } else {
+    messageElement.appendChild(labelContainer);
+  }
+}
+
+/**
  * Process a single message element
  */
 function processMessage(messageElement) {
@@ -449,6 +673,11 @@ function processMessage(messageElement) {
 
   // Inject mark icon
   injectMarkIcon(messageElement, messageId, isMarked);
+
+  // Show label badges if message has labels
+  if (isMarked) {
+    updateLabelBadges(messageElement, messageId);
+  }
 
   // Mark as processed
   messageElement.setAttribute('data-chatmarker-processed', 'true');

@@ -200,3 +200,71 @@ div[data-testid="msg-meta"] {
   z-index: 10;
   position: relative;
 }
+
+/* Label Selector Popup */
+.chatmarker-label-selector {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  min-width: 160px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.chatmarker-label-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.chatmarker-label-option:hover {
+  background-color: #f3f4f6;
+}
+
+.chatmarker-label-option.selected {
+  background-color: #e0e7ff;
+}
+
+.chatmarker-label-option .label-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.chatmarker-label-option .label-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.chatmarker-label-option.selected .label-text {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* Dark mode for label selector */
+[data-theme="dark"] .chatmarker-label-selector {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+[data-theme="dark"] .chatmarker-label-option:hover {
+  background-color: #374151;
+}
+
+[data-theme="dark"] .chatmarker-label-option.selected {
+  background-color: #312e81;
+}
+
+[data-theme="dark"] .chatmarker-label-option .label-text {
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .chatmarker-label-option.selected .label-text {
+  color: #a5b4fc;
+}
