@@ -1120,6 +1120,130 @@ function setupMutationObserver() {
 }
 
 /**
+ * Handle context menu actions
+ */
+function handleContextMenuAction(menuItemId, selectionText) {
+  console.log('[ChatMarker] Context menu action:', menuItemId);
+
+  // Find the message element that was right-clicked
+  // We'll look for the closest message to the current selection/cursor
+  const messageElement = findMessageElementNearSelection();
+
+  if (!messageElement) {
+    console.warn('[ChatMarker] Could not find message element for context menu action');
+    showToast('⚠️ Please click on a message first');
+    return;
+  }
+
+  const messageId = messageElement.getAttribute('data-chatmarker-id');
+  if (!messageId) {
+    console.warn('[ChatMarker] Message does not have ChatMarker ID');
+    return;
+  }
+
+  // Handle different menu actions
+  switch (menuItemId) {
+    case 'chatmarker-toggle':
+      // Toggle mark on the message
+      toggleMark(messageElement);
+      break;
+
+    case 'chatmarker-label-urgent':
+    case 'chatmarker-label-important':
+    case 'chatmarker-label-completed':
+    case 'chatmarker-label-followup':
+    case 'chatmarker-label-question':
+      // Extract label ID from menu item ID
+      const labelId = menuItemId.replace('chatmarker-label-', '');
+      toggleLabel(messageElement, labelId);
+      break;
+
+    case 'chatmarker-note':
+      // Open note editor
+      openNoteModal(messageElement);
+      break;
+
+    case 'chatmarker-reminder':
+      // Open reminder picker
+      openReminderPicker(messageElement);
+      break;
+
+    case 'chatmarker-copy':
+      // Copy message text
+      copyMessageToClipboard(messageElement, selectionText);
+      break;
+
+    default:
+      console.warn('[ChatMarker] Unknown context menu action:', menuItemId);
+  }
+}
+
+/**
+ * Find the message element near the current selection/cursor
+ */
+function findMessageElementNearSelection() {
+  // Try to get the element from the current selection
+  const selection = window.getSelection();
+  if (selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0);
+    let element = range.commonAncestorContainer;
+
+    // Walk up the DOM tree to find a message element
+    while (element && element !== document.body) {
+      if (element.nodeType === Node.ELEMENT_NODE) {
+        // Check if this is a message element
+        if (element.matches && element.matches(SELECTORS.message)) {
+          return element;
+        }
+        // Check if we're inside a message
+        const messageParent = element.closest(SELECTORS.message);
+        if (messageParent) {
+          return messageParent;
+        }
+      }
+      element = element.parentNode;
+    }
+  }
+
+  // Fallback: try to find the last hovered message
+  const hoveredMessages = document.querySelectorAll(SELECTORS.message + ':hover');
+  if (hoveredMessages.length > 0) {
+    return hoveredMessages[hoveredMessages.length - 1];
+  }
+
+  return null;
+}
+
+/**
+ * Copy message text to clipboard
+ */
+async function copyMessageToClipboard(messageElement, selectionText) {
+  try {
+    let textToCopy = selectionText;
+
+    // If no selection, get the full message text
+    if (!textToCopy) {
+      const textElement = messageElement.querySelector(SELECTORS.messageText);
+      if (textElement) {
+        textToCopy = textElement.textContent || textElement.innerText;
+      }
+    }
+
+    if (!textToCopy) {
+      showToast('⚠️ No text found to copy');
+      return;
+    }
+
+    // Copy to clipboard
+    await navigator.clipboard.writeText(textToCopy);
+    showToast('✅ Copied to clipboard');
+  } catch (error) {
+    console.error('[ChatMarker] Failed to copy text:', error);
+    showToast('❌ Failed to copy text');
+  }
+}
+
+/**
  * Handle messages from background script
  */
 function handleBackgroundMessage(request, sender, sendResponse) {
@@ -1140,6 +1264,11 @@ function handleBackgroundMessage(request, sender, sendResponse) {
         sendResponse({ success: true });
       });
       return true; // Keep channel open for async response
+
+    case 'contextMenuAction':
+      handleContextMenuAction(request.menuItemId, request.selectionText);
+      sendResponse({ success: true });
+      break;
 
     default:
       sendResponse({ success: false, error: 'Unknown action' });

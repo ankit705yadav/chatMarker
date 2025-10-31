@@ -24,6 +24,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     periodInMinutes: 24 * 60 // Repeat every 24 hours
   });
 
+  // Create context menus
+  createContextMenus();
+
   // Update badge on install
   await updateBadge();
 });
@@ -400,7 +403,134 @@ function capitalizeFirst(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+/**
+ * Create context menus
+ */
+function createContextMenus() {
+  // Remove all existing menus first
+  chrome.contextMenus.removeAll(() => {
+    // Main ChatMarker menu
+    chrome.contextMenus.create({
+      id: 'chatmarker-main',
+      title: 'ChatMarker',
+      contexts: ['selection', 'page'],
+      documentUrlPatterns: [
+        'https://web.whatsapp.com/*',
+        'https://www.messenger.com/*',
+        'https://www.facebook.com/messages/*',
+        'https://www.instagram.com/*',
+        'https://www.linkedin.com/*'
+      ]
+    });
+
+    // Mark/Unmark message
+    chrome.contextMenus.create({
+      id: 'chatmarker-toggle',
+      parentId: 'chatmarker-main',
+      title: 'Mark Message',
+      contexts: ['selection', 'page']
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-1',
+      parentId: 'chatmarker-main',
+      type: 'separator',
+      contexts: ['selection', 'page']
+    });
+
+    // Add labels submenu
+    chrome.contextMenus.create({
+      id: 'chatmarker-labels',
+      parentId: 'chatmarker-main',
+      title: 'Add Label',
+      contexts: ['selection', 'page']
+    });
+
+    // Label options
+    const labels = [
+      { id: 'urgent', name: 'Urgent', emoji: '🔴' },
+      { id: 'important', name: 'Important', emoji: '🟡' },
+      { id: 'completed', name: 'Completed', emoji: '🟢' },
+      { id: 'followup', name: 'Follow-up', emoji: '🔵' },
+      { id: 'question', name: 'Question', emoji: '🟣' }
+    ];
+
+    labels.forEach(label => {
+      chrome.contextMenus.create({
+        id: `chatmarker-label-${label.id}`,
+        parentId: 'chatmarker-labels',
+        title: `${label.emoji} ${label.name}`,
+        contexts: ['selection', 'page']
+      });
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-2',
+      parentId: 'chatmarker-main',
+      type: 'separator',
+      contexts: ['selection', 'page']
+    });
+
+    // Add note
+    chrome.contextMenus.create({
+      id: 'chatmarker-note',
+      parentId: 'chatmarker-main',
+      title: '📝 Add Note',
+      contexts: ['selection', 'page']
+    });
+
+    // Set reminder
+    chrome.contextMenus.create({
+      id: 'chatmarker-reminder',
+      parentId: 'chatmarker-main',
+      title: '⏰ Set Reminder',
+      contexts: ['selection', 'page']
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-3',
+      parentId: 'chatmarker-main',
+      type: 'separator',
+      contexts: ['selection', 'page']
+    });
+
+    // Copy text
+    chrome.contextMenus.create({
+      id: 'chatmarker-copy',
+      parentId: 'chatmarker-main',
+      title: '📋 Copy Message Text',
+      contexts: ['selection', 'page']
+    });
+
+    console.log('[ChatMarker] Context menus created');
+  });
+}
+
+/**
+ * Handle context menu clicks
+ */
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  console.log('[ChatMarker] Context menu clicked:', info.menuItemId);
+
+  // Send message to content script to handle the action
+  try {
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'contextMenuAction',
+      menuItemId: info.menuItemId,
+      selectionText: info.selectionText
+    });
+  } catch (error) {
+    console.error('[ChatMarker] Error sending context menu action:', error);
+  }
+});
+
 // Initialize badge on startup
 updateBadge();
+
+// Create context menus on startup
+createContextMenus();
 
 console.log('[ChatMarker] Background service worker loaded');

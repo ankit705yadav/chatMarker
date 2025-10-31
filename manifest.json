@@ -9,7 +9,8 @@
     "alarms",
     "activeTab",
     "scripting",
-    "sidePanel"
+    "sidePanel",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*",
