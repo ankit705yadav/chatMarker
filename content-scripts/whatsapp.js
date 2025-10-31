@@ -548,6 +548,20 @@ function showLabelSelector(messageElement, messageId, iconContainer) {
     selector.appendChild(option);
   });
 
+  // Add "Add Note" option at the bottom
+  const noteOption = document.createElement('div');
+  noteOption.className = 'chatmarker-label-option chatmarker-note-option';
+  noteOption.innerHTML = `
+    <span class="label-icon">📝</span>
+    <span class="label-text">Add Note</span>
+  `;
+  noteOption.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selector.remove();
+    showNoteModal(messageElement, messageId);
+  });
+  selector.appendChild(noteOption);
+
   // Position the selector near the icon
   const rect = iconContainer.getBoundingClientRect();
   selector.style.position = 'fixed';
@@ -655,6 +669,141 @@ function updateLabelBadges(messageElement, messageId) {
 }
 
 /**
+ * Show note modal for adding/editing notes
+ */
+function showNoteModal(messageElement, messageId) {
+  const marker = markedMessages.get(messageId);
+  if (!marker) {
+    console.error('[ChatMarker] Cannot add note - message not marked');
+    return;
+  }
+
+  // Close any existing modal
+  const existing = document.querySelector('.chatmarker-note-modal');
+  if (existing) existing.remove();
+
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.className = 'chatmarker-note-modal';
+
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.className = 'chatmarker-note-modal-content';
+
+  modalContent.innerHTML = `
+    <div class="chatmarker-note-header">
+      <h3>Add Note</h3>
+      <button class="chatmarker-note-close">✕</button>
+    </div>
+    <div class="chatmarker-note-body">
+      <div class="chatmarker-note-message-preview">
+        ${marker.messageText.substring(0, 100)}${marker.messageText.length > 100 ? '...' : ''}
+      </div>
+      <textarea
+        class="chatmarker-note-textarea"
+        placeholder="Add your private note here..."
+        maxlength="500"
+      >${marker.notes || ''}</textarea>
+      <div class="chatmarker-note-footer">
+        <span class="chatmarker-note-counter">0/500</span>
+        <div class="chatmarker-note-buttons">
+          <button class="chatmarker-note-cancel">Cancel</button>
+          <button class="chatmarker-note-save">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
+
+  // Get elements
+  const textarea = modal.querySelector('.chatmarker-note-textarea');
+  const counter = modal.querySelector('.chatmarker-note-counter');
+  const saveBtn = modal.querySelector('.chatmarker-note-save');
+  const cancelBtn = modal.querySelector('.chatmarker-note-cancel');
+  const closeBtn = modal.querySelector('.chatmarker-note-close');
+
+  // Update character counter
+  const updateCounter = () => {
+    counter.textContent = `${textarea.value.length}/500`;
+  };
+  updateCounter();
+  textarea.addEventListener('input', updateCounter);
+
+  // Save note
+  const saveNote = () => {
+    marker.notes = textarea.value.trim();
+    marker.updatedAt = Date.now();
+
+    chrome.runtime.sendMessage(
+      {
+        action: 'saveMarker',
+        data: marker
+      },
+      (response) => {
+        if (response && response.success) {
+          markedMessages.set(messageId, marker);
+          updateNoteIndicator(messageElement, messageId);
+          modal.remove();
+          console.log('[ChatMarker] Note saved:', messageId);
+        } else {
+          console.error('[ChatMarker] Failed to save note:', response?.error);
+        }
+      }
+    );
+  };
+
+  // Event listeners
+  saveBtn.addEventListener('click', saveNote);
+  cancelBtn.addEventListener('click', () => modal.remove());
+  closeBtn.addEventListener('click', () => modal.remove());
+
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // Focus textarea
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+/**
+ * Update note indicator on message
+ */
+function updateNoteIndicator(messageElement, messageId) {
+  const marker = markedMessages.get(messageId);
+  const hasNote = marker && marker.notes && marker.notes.trim().length > 0;
+
+  // Remove existing indicator
+  const existing = messageElement.querySelector('.chatmarker-note-indicator');
+  if (existing) existing.remove();
+
+  if (!hasNote) return;
+
+  // Create note indicator
+  const indicator = document.createElement('span');
+  indicator.className = 'chatmarker-note-indicator';
+  indicator.textContent = '📝';
+  indicator.title = marker.notes;
+
+  // Add click to edit
+  indicator.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showNoteModal(messageElement, messageId);
+  });
+
+  // Find where to inject (next to star icon)
+  const iconContainer = messageElement.querySelector('.chatmarker-icon');
+  if (iconContainer) {
+    iconContainer.appendChild(indicator);
+  }
+}
+
+/**
  * Process a single message element
  */
 function processMessage(messageElement) {
@@ -677,6 +826,7 @@ function processMessage(messageElement) {
   // Show label badges if message has labels
   if (isMarked) {
     updateLabelBadges(messageElement, messageId);
+    updateNoteIndicator(messageElement, messageId);
   }
 
   // Mark as processed

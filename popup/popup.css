@@ -428,6 +428,34 @@ body {
   overflow: hidden;
 }
 
+/* Note Preview */
+.message-note-preview {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background-color: var(--color-surface);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.note-preview-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.note-preview-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
 .message-footer {
   display: flex;
   align-items: center;

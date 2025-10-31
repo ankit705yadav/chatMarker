@@ -187,6 +187,14 @@ function createMessageCard(marker) {
   const noteIcon = marker.notes ? '<span class="message-icon" title="Has note">📝</span>' : '';
   const reminderIcon = ''; // Will be implemented with reminder feature
 
+  // Note preview HTML
+  const notePreviewHTML = marker.notes && marker.notes.trim()
+    ? `<div class="message-note-preview">
+         <div class="note-preview-icon">📝</div>
+         <div class="note-preview-text">${escapeHtml(marker.notes)}</div>
+       </div>`
+    : '';
+
   card.innerHTML = `
     <div class="message-header">
       <div class="message-meta">
@@ -204,6 +212,7 @@ function createMessageCard(marker) {
       </div>
     </div>
     <div class="message-text">${escapeHtml(marker.messageText || 'No message text')}</div>
+    ${notePreviewHTML}
     <div class="message-footer">
       ${labelsHTML}
       <div class="message-icons">
