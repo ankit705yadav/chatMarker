@@ -548,7 +548,7 @@ function showLabelSelector(messageElement, messageId, iconContainer) {
     selector.appendChild(option);
   });
 
-  // Add "Add Note" option at the bottom
+  // Add "Add Note" option
   const noteOption = document.createElement('div');
   noteOption.className = 'chatmarker-label-option chatmarker-note-option';
   noteOption.innerHTML = `
@@ -561,6 +561,20 @@ function showLabelSelector(messageElement, messageId, iconContainer) {
     showNoteModal(messageElement, messageId);
   });
   selector.appendChild(noteOption);
+
+  // Add "Set Reminder" option
+  const reminderOption = document.createElement('div');
+  reminderOption.className = 'chatmarker-label-option';
+  reminderOption.innerHTML = `
+    <span class="label-icon">⏰</span>
+    <span class="label-text">Set Reminder</span>
+  `;
+  reminderOption.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selector.remove();
+    showReminderModal(messageElement, messageId);
+  });
+  selector.appendChild(reminderOption);
 
   // Position the selector near the icon
   const rect = iconContainer.getBoundingClientRect();
@@ -801,6 +815,132 @@ function updateNoteIndicator(messageElement, messageId) {
   if (iconContainer) {
     iconContainer.appendChild(indicator);
   }
+}
+
+/**
+ * Show reminder modal for setting reminders
+ */
+function showReminderModal(messageElement, messageId) {
+  const marker = markedMessages.get(messageId);
+  if (!marker) {
+    console.error('[ChatMarker] Cannot set reminder - message not marked');
+    return;
+  }
+
+  // Close any existing modal
+  const existing = document.querySelector('.chatmarker-reminder-modal');
+  if (existing) existing.remove();
+
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.className = 'chatmarker-reminder-modal';
+
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.className = 'chatmarker-reminder-modal-content';
+
+  modalContent.innerHTML = `
+    <div class="chatmarker-reminder-header">
+      <h3>Set Reminder</h3>
+      <button class="chatmarker-reminder-close">✕</button>
+    </div>
+    <div class="chatmarker-reminder-body">
+      <div class="chatmarker-reminder-message-preview">
+        ${marker.messageText.substring(0, 100)}${marker.messageText.length > 100 ? '...' : ''}
+      </div>
+      <div class="chatmarker-reminder-quick-options">
+        <button class="chatmarker-reminder-quick-btn" data-minutes="60">1 Hour</button>
+        <button class="chatmarker-reminder-quick-btn" data-minutes="180">3 Hours</button>
+        <button class="chatmarker-reminder-quick-btn" data-minutes="1440">Tomorrow</button>
+      </div>
+      <div class="chatmarker-reminder-custom">
+        <label>Custom Date & Time:</label>
+        <input type="datetime-local" class="chatmarker-reminder-datetime" />
+      </div>
+      <div class="chatmarker-reminder-footer">
+        <button class="chatmarker-reminder-cancel">Cancel</button>
+        <button class="chatmarker-reminder-save">Set Reminder</button>
+      </div>
+    </div>
+  `;
+
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
+
+  // Get elements
+  const datetimeInput = modal.querySelector('.chatmarker-reminder-datetime');
+  const quickBtns = modal.querySelectorAll('.chatmarker-reminder-quick-btn');
+  const saveBtn = modal.querySelector('.chatmarker-reminder-save');
+  const cancelBtn = modal.querySelector('.chatmarker-reminder-cancel');
+  const closeBtn = modal.querySelector('.chatmarker-reminder-close');
+
+  // Set minimum datetime to now
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  datetimeInput.min = now.toISOString().slice(0, 16);
+
+  // Quick button handlers
+  quickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const minutes = parseInt(btn.getAttribute('data-minutes'));
+      const reminderTime = new Date(Date.now() + minutes * 60 * 1000);
+      reminderTime.setMinutes(reminderTime.getMinutes() - reminderTime.getTimezoneOffset());
+      datetimeInput.value = reminderTime.toISOString().slice(0, 16);
+
+      // Highlight selected button
+      quickBtns.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  // Save reminder
+  const saveReminder = () => {
+    const selectedTime = datetimeInput.value;
+    if (!selectedTime) {
+      alert('Please select a time for the reminder');
+      return;
+    }
+
+    const reminderTime = new Date(selectedTime).getTime();
+    if (reminderTime <= Date.now()) {
+      alert('Reminder time must be in the future');
+      return;
+    }
+
+    // Send to background to create alarm
+    chrome.runtime.sendMessage(
+      {
+        action: 'createReminder',
+        data: {
+          messageId: messageId,
+          reminderTime: reminderTime,
+          markerData: marker
+        }
+      },
+      (response) => {
+        if (response && response.success) {
+          modal.remove();
+          console.log('[ChatMarker] Reminder created:', response.reminder);
+          // Could show a success message here
+        } else {
+          console.error('[ChatMarker] Failed to create reminder:', response?.error);
+          alert('Failed to set reminder');
+        }
+      }
+    );
+  };
+
+  // Event listeners
+  saveBtn.addEventListener('click', saveReminder);
+  cancelBtn.addEventListener('click', () => modal.remove());
+  closeBtn.addEventListener('click', () => modal.remove());
+
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
 }
 
 /**
