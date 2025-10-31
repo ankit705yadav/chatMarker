@@ -1335,15 +1335,310 @@ function setupNavigationWatcher() {
   }, 1000);
 }
 
+/**
+ * Keyboard Shortcuts
+ */
+let currentHoveredMessage = null;
+let currentHoveredMessageId = null;
+
+/**
+ * Setup keyboard shortcuts
+ */
+function setupKeyboardShortcuts() {
+  // Track hovered message
+  document.addEventListener('mouseover', (e) => {
+    const messageElement = e.target.closest('[data-id^="whatsapp:"]');
+    if (messageElement) {
+      currentHoveredMessage = messageElement;
+      currentHoveredMessageId = messageElement.getAttribute('data-id');
+    }
+  }, true);
+
+  document.addEventListener('mouseout', (e) => {
+    const messageElement = e.target.closest('[data-id^="whatsapp:"]');
+    if (messageElement === currentHoveredMessage) {
+      // Small delay to prevent flickering
+      setTimeout(() => {
+        if (!document.querySelector('[data-id^="whatsapp:"]:hover')) {
+          currentHoveredMessage = null;
+          currentHoveredMessageId = null;
+        }
+      }, 100);
+    }
+  }, true);
+
+  // Keyboard event listener
+  document.addEventListener('keydown', (e) => {
+    // Don't trigger shortcuts when typing in input fields
+    const target = e.target;
+    if (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.contentEditable === 'true' ||
+        target.closest('[contenteditable="true"]')) {
+      return;
+    }
+
+    // Don't trigger if any modal is open
+    if (document.querySelector('.chatmarker-note-modal, .chatmarker-reminder-modal, .chatmarker-label-selector')) {
+      return;
+    }
+
+    // Ignore if no message is hovered
+    if (!currentHoveredMessage || !currentHoveredMessageId) {
+      return;
+    }
+
+    const key = e.key.toLowerCase();
+    const ctrl = e.ctrlKey || e.metaKey;
+
+    // M - Mark/Unmark message
+    if (key === 'm' && !ctrl) {
+      e.preventDefault();
+      toggleMarkMessage(currentHoveredMessage, currentHoveredMessageId);
+      showShortcutFeedback(currentHoveredMessage, 'Mark toggled');
+    }
+
+    // N - Add/Edit note (only if message is marked)
+    else if (key === 'n' && !ctrl) {
+      if (markedMessages.has(currentHoveredMessageId)) {
+        e.preventDefault();
+        showNoteModal(currentHoveredMessage, currentHoveredMessageId);
+      }
+    }
+
+    // R - Set reminder (only if message is marked)
+    else if (key === 'r' && !ctrl) {
+      if (markedMessages.has(currentHoveredMessageId)) {
+        e.preventDefault();
+        showReminderModal(currentHoveredMessage, currentHoveredMessageId);
+      }
+    }
+
+    // 1-5 - Quick label assignment (only if message is marked)
+    else if (['1', '2', '3', '4', '5'].includes(key) && !ctrl) {
+      if (markedMessages.has(currentHoveredMessageId)) {
+        e.preventDefault();
+        const labelNames = ['urgent', 'important', 'completed', 'followup', 'question'];
+        const labelName = labelNames[parseInt(key) - 1];
+        toggleLabel(currentHoveredMessage, currentHoveredMessageId, labelName);
+        showShortcutFeedback(currentHoveredMessage, `${capitalizeLabel(labelName)} toggled`);
+      }
+    }
+
+    // Delete/Backspace - Delete mark (only if message is marked)
+    else if ((key === 'delete' || key === 'backspace') && !ctrl) {
+      if (markedMessages.has(currentHoveredMessageId)) {
+        e.preventDefault();
+        deleteMessageMark(currentHoveredMessage, currentHoveredMessageId);
+        showShortcutFeedback(currentHoveredMessage, 'Mark deleted');
+      }
+    }
+
+    // ? - Show keyboard shortcuts help
+    else if (key === '?' && !ctrl) {
+      e.preventDefault();
+      showKeyboardShortcutsHelp();
+    }
+  });
+
+  console.log('[ChatMarker] Keyboard shortcuts enabled');
+}
+
+/**
+ * Toggle mark on message (for keyboard shortcut)
+ */
+function toggleMarkMessage(messageElement, messageId) {
+  const iconContainer = messageElement.querySelector('.chatmarker-icon-container');
+  if (!iconContainer) return;
+
+  const starIcon = iconContainer.querySelector('.chatmarker-star');
+  if (!starIcon) return;
+
+  const isMarked = markedMessages.has(messageId);
+
+  if (isMarked) {
+    // Unmark
+    deleteMessageMark(messageElement, messageId);
+  } else {
+    // Mark
+    starIcon.click();
+  }
+}
+
+/**
+ * Delete message mark
+ */
+function deleteMessageMark(messageElement, messageId) {
+  // Send message to background to delete marker
+  chrome.runtime.sendMessage(
+    {
+      action: 'deleteMarker',
+      messageId: messageId
+    },
+    (response) => {
+      if (response && response.success) {
+        // Remove from local cache
+        markedMessages.delete(messageId);
+
+        // Update UI
+        const iconContainer = messageElement.querySelector('.chatmarker-icon-container');
+        if (iconContainer) {
+          const starIcon = iconContainer.querySelector('.chatmarker-star');
+          if (starIcon) {
+            starIcon.classList.remove('marked');
+            starIcon.textContent = '☆';
+          }
+        }
+
+        // Remove labels
+        const labelContainer = messageElement.querySelector('.chatmarker-labels');
+        if (labelContainer) {
+          labelContainer.remove();
+        }
+
+        // Remove note indicator
+        const noteIndicator = messageElement.querySelector('.chatmarker-note-indicator');
+        if (noteIndicator) {
+          noteIndicator.remove();
+        }
+
+        console.log('[ChatMarker] Message unmarked:', messageId);
+      }
+    }
+  );
+}
+
+/**
+ * Show keyboard shortcut feedback
+ */
+function showShortcutFeedback(messageElement, text) {
+  const feedback = document.createElement('div');
+  feedback.className = 'chatmarker-shortcut-feedback';
+  feedback.textContent = text;
+
+  const rect = messageElement.getBoundingClientRect();
+  feedback.style.position = 'fixed';
+  feedback.style.top = `${rect.top + 10}px`;
+  feedback.style.right = '20px';
+  feedback.style.zIndex = '100001';
+
+  document.body.appendChild(feedback);
+
+  // Fade out and remove
+  setTimeout(() => {
+    feedback.classList.add('fade-out');
+    setTimeout(() => feedback.remove(), 300);
+  }, 1500);
+}
+
+/**
+ * Show keyboard shortcuts help modal
+ */
+function showKeyboardShortcutsHelp() {
+  const existingModal = document.querySelector('.chatmarker-shortcuts-help');
+  if (existingModal) {
+    existingModal.remove();
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'chatmarker-shortcuts-help';
+  modal.innerHTML = `
+    <div class="chatmarker-shortcuts-help-content">
+      <div class="chatmarker-shortcuts-help-header">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <button class="chatmarker-shortcuts-help-close">✕</button>
+      </div>
+      <div class="chatmarker-shortcuts-help-body">
+        <div class="shortcut-item">
+          <kbd>M</kbd>
+          <span>Mark/Unmark message (hover over message)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>N</kbd>
+          <span>Add/Edit note (marked messages only)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>R</kbd>
+          <span>Set reminder (marked messages only)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>1</kbd>
+          <span>Toggle Urgent label</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>2</kbd>
+          <span>Toggle Important label</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>3</kbd>
+          <span>Toggle Completed label</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>4</kbd>
+          <span>Toggle Follow-up label</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>5</kbd>
+          <span>Toggle Question label</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Del</kbd>
+          <span>Delete mark (marked messages only)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>?</kbd>
+          <span>Show/Hide this help</span>
+        </div>
+      </div>
+      <div class="chatmarker-shortcuts-help-footer">
+        <p>💡 Hover over a message to use shortcuts</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Close button
+  modal.querySelector('.chatmarker-shortcuts-help-close').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // Close on Escape
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+}
+
+/**
+ * Capitalize label name
+ */
+function capitalizeLabel(label) {
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 // Initialize when page loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     init();
     setupNavigationWatcher();
+    setupKeyboardShortcuts();
   });
 } else {
   init();
   setupNavigationWatcher();
+  setupKeyboardShortcuts();
 }
 
 console.log('[ChatMarker] WhatsApp content script loaded');
