@@ -38,6 +38,51 @@ let observer = null;
 let isInitialized = false;
 
 /**
+ * Check if extension context is valid
+ */
+function isExtensionContextValid() {
+  try {
+    return !!chrome.runtime?.id;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Safe wrapper for chrome.runtime.sendMessage
+ * Handles extension context invalidation gracefully
+ */
+function safeSendMessage(message, callback) {
+  if (!isExtensionContextValid()) {
+    console.warn('[ChatMarker] Extension context invalidated - page reload recommended');
+    if (callback) {
+      callback({ success: false, error: 'Extension context invalidated' });
+    }
+    return;
+  }
+
+  try {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[ChatMarker] Message send error:', chrome.runtime.lastError.message);
+        if (callback) {
+          callback({ success: false, error: chrome.runtime.lastError.message });
+        }
+        return;
+      }
+      if (callback) {
+        callback(response);
+      }
+    });
+  } catch (error) {
+    console.error('[ChatMarker] Failed to send message:', error);
+    if (callback) {
+      callback({ success: false, error: error.message });
+    }
+  }
+}
+
+/**
  * Initialize the content script
  */
 async function init() {
@@ -158,7 +203,7 @@ function waitForChatToOpen() {
  */
 async function loadMarkedMessages() {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage(
+    safeSendMessage(
       { action: 'getAllMarkers' },
       (response) => {
         if (response && response.success && response.data) {
@@ -434,7 +479,7 @@ async function markMessage(messageElement, messageId) {
   };
 
   // Save to storage via background
-  chrome.runtime.sendMessage(
+  safeSendMessage(
     {
       action: 'saveMarker',
       data: marker
@@ -459,7 +504,7 @@ async function markMessage(messageElement, messageId) {
  * Unmark a message
  */
 async function unmarkMessage(messageElement, messageId) {
-  chrome.runtime.sendMessage(
+  safeSendMessage(
     {
       action: 'deleteMarker',
       data: { messageId }
@@ -624,7 +669,7 @@ async function toggleLabel(messageElement, messageId, labelName) {
   marker.updatedAt = Date.now();
 
   // Save to storage
-  chrome.runtime.sendMessage(
+  safeSendMessage(
     {
       action: 'saveMarker',
       data: marker
@@ -750,7 +795,7 @@ function showNoteModal(messageElement, messageId) {
     marker.notes = textarea.value.trim();
     marker.updatedAt = Date.now();
 
-    chrome.runtime.sendMessage(
+    safeSendMessage(
       {
         action: 'saveMarker',
         data: marker
@@ -908,7 +953,7 @@ function showReminderModal(messageElement, messageId) {
     }
 
     // Send to background to create alarm
-    chrome.runtime.sendMessage(
+    safeSendMessage(
       {
         action: 'createReminder',
         data: {
@@ -1012,7 +1057,7 @@ function updateOldMarkersWithDataId() {
           marker.whatsappDataId = whatsappDataId;
 
           // Save to storage
-          chrome.runtime.sendMessage(
+          safeSendMessage(
             {
               action: 'saveMarker',
               data: marker
@@ -1113,7 +1158,7 @@ async function scrollToMessage(messageId) {
   if (!marker) {
     console.error('[ChatMarker] Marker not found in local state');
     // Try to get from storage via background
-    chrome.runtime.sendMessage(
+    safeSendMessage(
       { action: 'getMarker', data: { messageId } },
       (response) => {
         if (response && response.success && response.data) {
@@ -1470,7 +1515,7 @@ function toggleMarkMessage(messageElement, messageId) {
  */
 function deleteMessageMark(messageElement, messageId) {
   // Send message to background to delete marker
-  chrome.runtime.sendMessage(
+  safeSendMessage(
     {
       action: 'deleteMarker',
       messageId: messageId
@@ -1627,6 +1672,45 @@ function showKeyboardShortcutsHelp() {
 function capitalizeLabel(label) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
+
+// Listen for extension unload/reload
+chrome.runtime.onConnect.addListener(() => {
+  // Connection established, extension is active
+});
+
+// Check for context invalidation periodically
+let contextCheckInterval = setInterval(() => {
+  if (!isExtensionContextValid()) {
+    console.warn('[ChatMarker] Extension context invalidated');
+    clearInterval(contextCheckInterval);
+
+    // Show notification to user
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ef4444;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      max-width: 300px;
+    `;
+    notification.innerHTML = `
+      ⚠️ ChatMarker extension was updated.<br>
+      <span style="font-size: 13px; opacity: 0.9;">Please reload this page to continue using features.</span>
+    `;
+    document.body.appendChild(notification);
+
+    // Auto-remove after 10 seconds
+    setTimeout(() => notification.remove(), 10000);
+  }
+}, 5000); // Check every 5 seconds
 
 // Initialize when page loads
 if (document.readyState === 'loading') {
