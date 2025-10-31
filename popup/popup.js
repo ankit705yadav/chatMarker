@@ -223,6 +223,9 @@ function createMessageCard(marker) {
         <span class="message-time">${timeAgo}</span>
       </div>
       <div class="message-actions">
+        <button class="message-action-btn copy-btn" title="Copy Message Text" data-id="${marker.messageId}">
+          📋
+        </button>
         <button class="message-action-btn edit-note-btn" title="Add/Edit Note" data-id="${marker.messageId}">
           📝
         </button>
@@ -250,6 +253,12 @@ function createMessageCard(marker) {
       return;
     }
     navigateToMessage(marker.messageId);
+  });
+
+  // Copy button
+  card.querySelector('.copy-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    copyMessageText(marker);
   });
 
   // Edit note button
@@ -352,6 +361,37 @@ async function navigateToMessage(messageId) {
   } catch (error) {
     console.error('[ChatMarker Popup] Error navigating:', error);
     showToast('Error opening message');
+  }
+}
+
+/**
+ * Copy message text to clipboard
+ */
+async function copyMessageText(marker) {
+  try {
+    // Format text with context
+    const date = new Date(marker.createdAt || marker.timestamp).toLocaleString();
+    const platform = capitalizeFirst(marker.platform);
+    const sender = marker.sender || 'Unknown';
+    const messageText = marker.messageText || '';
+
+    // Create formatted text
+    const textWithContext = `${sender} (${platform}) - ${date}\n${messageText}`;
+
+    // Copy to clipboard using Clipboard API
+    await navigator.clipboard.writeText(textWithContext);
+
+    showToast('✅ Copied to clipboard');
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error copying text:', error);
+
+    // Fallback: try copying just the message text
+    try {
+      await navigator.clipboard.writeText(marker.messageText || '');
+      showToast('✅ Copied message text');
+    } catch (fallbackError) {
+      showToast('❌ Failed to copy');
+    }
   }
 }
 
