@@ -11,11 +11,16 @@
   <header class="header">
     <div class="header-left">
       <div class="logo">
-        <span class="logo-icon">⭐</span>
+        <div class="logo-icon-box">
+          <span class="logo-icon">⭐</span>
+        </div>
         <h1 class="logo-text">ChatMarker</h1>
       </div>
     </div>
     <div class="header-right">
+      <button class="icon-button" id="statsBtn" title="Statistics">
+        <span>📊</span>
+      </button>
       <button class="icon-button" id="settingsBtn" title="Settings">
         <span>⚙️</span>
       </button>
@@ -74,13 +79,15 @@
 
     <!-- Empty State -->
     <div class="empty-state" id="emptyState" style="display: none;">
-      <div class="empty-icon">⭐</div>
+      <div class="empty-icon-box">
+        <span class="empty-icon">⭐</span>
+      </div>
       <h3 class="empty-title">No marked messages yet</h3>
       <p class="empty-text">
-        Click the star icon or press M while hovering<br>
-        over any WhatsApp message to mark it
+        Right-click any message on WhatsApp, Messenger,<br>
+        Instagram, or LinkedIn and select "Mark Message"
       </p>
-      <button class="btn-secondary" id="tutorialBtn">Show Shortcuts</button>
+      <button class="btn-secondary" id="tutorialBtn">View Tutorial</button>
     </div>
 
     <!-- No Results State -->
@@ -159,6 +166,19 @@
       </div>
       <div class="modal-footer">
         <button class="btn-primary" id="saveSettings">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Modal -->
+  <div class="modal" id="statsModal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>📊 Statistics</h2>
+        <button class="modal-close" id="closeStats">✕</button>
+      </div>
+      <div class="modal-body" id="statsBody">
+        <!-- Stats will be populated by JavaScript -->
       </div>
     </div>
   </div>

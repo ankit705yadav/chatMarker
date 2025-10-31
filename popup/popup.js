@@ -23,12 +23,15 @@ const noResultsState = document.getElementById('noResultsState');
 const resultCount = document.getElementById('resultCount');
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
+const statsBtn = document.getElementById('statsBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const exportBtn = document.getElementById('exportBtn');
 
 // Modals
 const settingsModal = document.getElementById('settingsModal');
 const closeSettings = document.getElementById('closeSettings');
+const statsModal = document.getElementById('statsModal');
+const closeStats = document.getElementById('closeStats');
 const noteModal = document.getElementById('noteModal');
 const closeNote = document.getElementById('closeNote');
 
@@ -161,12 +164,8 @@ function displayMarkers() {
     messageList.appendChild(card);
   });
 
-  // Update result count
-  if (filteredMarkers.length === allMarkers.length) {
-    resultCount.textContent = `${allMarkers.length} marked message${allMarkers.length === 1 ? '' : 's'}`;
-  } else {
-    resultCount.textContent = `Showing ${filteredMarkers.length} of ${allMarkers.length}`;
-  }
+  // Update result count - always show "Showing X of Y" format per design spec
+  resultCount.textContent = `Showing ${filteredMarkers.length} of ${allMarkers.length} marked message${allMarkers.length === 1 ? '' : 's'}`;
 }
 
 /**
@@ -219,8 +218,7 @@ function createMessageCard(marker) {
     <div class="message-header">
       <div class="message-meta">
         <span class="platform-icon" title="${capitalizeFirst(marker.platform)}">${platformIcon}</span>
-        <span class="sender-name">${escapeHtml(marker.sender || 'Unknown')}</span>
-        <span class="message-time">${timeAgo}</span>
+        <span class="sender-name">${capitalizeFirst(marker.platform)} • ${escapeHtml(marker.sender || 'Unknown')} • ${timeAgo}</span>
       </div>
       <div class="message-actions">
         <button class="message-action-btn copy-btn" title="Copy Message Text" data-id="${marker.messageId}">
@@ -307,6 +305,10 @@ function setupEventListeners() {
 
   // Theme toggle
   themeToggle.addEventListener('click', toggleTheme);
+
+  // Statistics
+  statsBtn.addEventListener('click', showStatistics);
+  closeStats.addEventListener('click', closeStatisticsModal);
 
   // Settings
   settingsBtn.addEventListener('click', openSettings);
@@ -477,6 +479,156 @@ function updateCharCounter() {
   } else {
     charCounter.style.color = 'var(--color-text-tertiary)';
   }
+}
+
+/**
+ * Show statistics modal
+ */
+async function showStatistics() {
+  try {
+    const markers = await getMarkersArray();
+    const reminders = await getAllReminders();
+
+    // Calculate statistics
+    const totalMarks = markers.length;
+
+    // Marks by label
+    const labelCounts = {
+      urgent: 0,
+      important: 0,
+      completed: 0,
+      followup: 0,
+      question: 0,
+      unlabeled: 0
+    };
+
+    markers.forEach(marker => {
+      if (!marker.labels || marker.labels.length === 0) {
+        labelCounts.unlabeled++;
+      } else {
+        marker.labels.forEach(label => {
+          if (labelCounts[label] !== undefined) {
+            labelCounts[label]++;
+          }
+        });
+      }
+    });
+
+    // Marks with notes
+    const marksWithNotes = markers.filter(m => m.notes && m.notes.trim()).length;
+
+    // Active reminders
+    const activeReminders = Object.values(reminders).filter(r => r.active && !r.firedAt).length;
+
+    // Marks by date
+    const now = Date.now();
+    const today = new Date().setHours(0, 0, 0, 0);
+    const thisWeek = now - (7 * 24 * 60 * 60 * 1000);
+    const thisMonth = now - (30 * 24 * 60 * 60 * 1000);
+
+    const marksToday = markers.filter(m => (m.createdAt || m.timestamp) >= today).length;
+    const marksThisWeek = markers.filter(m => (m.createdAt || m.timestamp) >= thisWeek).length;
+    const marksThisMonth = markers.filter(m => (m.createdAt || m.timestamp) >= thisMonth).length;
+
+    // Top chats
+    const chatCounts = {};
+    markers.forEach(marker => {
+      const chatName = marker.chatName || marker.chatId || 'Unknown';
+      chatCounts[chatName] = (chatCounts[chatName] || 0) + 1;
+    });
+
+    const topChats = Object.entries(chatCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Build stats HTML
+    const statsBody = document.getElementById('statsBody');
+    statsBody.innerHTML = `
+      <div class="stats-section">
+        <h3 style="margin-bottom: 12px; font-size: 16px;">📈 Overview</h3>
+        <div class="stat-row">
+          <span class="stat-label">Total Marks:</span>
+          <span class="stat-value">${totalMarks}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">With Notes:</span>
+          <span class="stat-value">${marksWithNotes}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Active Reminders:</span>
+          <span class="stat-value">${activeReminders}</span>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <h3 style="margin-bottom: 12px; font-size: 16px;">🏷️ By Label</h3>
+        <div class="stat-row">
+          <span class="stat-label">🔴 Urgent:</span>
+          <span class="stat-value">${labelCounts.urgent}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🟡 Important:</span>
+          <span class="stat-value">${labelCounts.important}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🟢 Completed:</span>
+          <span class="stat-value">${labelCounts.completed}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🔵 Follow-up:</span>
+          <span class="stat-value">${labelCounts.followup}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🟣 Question:</span>
+          <span class="stat-value">${labelCounts.question}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">⚪ Unlabeled:</span>
+          <span class="stat-value">${labelCounts.unlabeled}</span>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <h3 style="margin-bottom: 12px; font-size: 16px;">📅 Timeline</h3>
+        <div class="stat-row">
+          <span class="stat-label">Today:</span>
+          <span class="stat-value">${marksToday}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">This Week:</span>
+          <span class="stat-value">${marksThisWeek}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">This Month:</span>
+          <span class="stat-value">${marksThisMonth}</span>
+        </div>
+      </div>
+
+      ${topChats.length > 0 ? `
+      <div class="stats-section">
+        <h3 style="margin-bottom: 12px; font-size: 16px;">💬 Top Chats</h3>
+        ${topChats.map(([chat, count]) => `
+          <div class="stat-row">
+            <span class="stat-label">${escapeHtml(chat.substring(0, 25))}${chat.length > 25 ? '...' : ''}:</span>
+            <span class="stat-value">${count}</span>
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
+    `;
+
+    statsModal.style.display = 'flex';
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error showing statistics:', error);
+    showToast('Error loading statistics');
+  }
+}
+
+/**
+ * Close statistics modal
+ */
+function closeStatisticsModal() {
+  statsModal.style.display = 'none';
 }
 
 /**
