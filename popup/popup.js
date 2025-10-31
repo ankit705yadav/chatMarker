@@ -304,7 +304,7 @@ function setupEventListeners() {
   closeSettings.addEventListener('click', closeSettingsModal);
 
   document.getElementById('saveSettings')?.addEventListener('click', saveSettings);
-  document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
+  document.getElementById('exportDataBtn')?.addEventListener('click', showExportModal);
   document.getElementById('importDataBtn')?.addEventListener('click', () => {
     document.getElementById('importFileInput').click();
   });
@@ -321,7 +321,7 @@ function setupEventListeners() {
   document.getElementById('tutorialBtn')?.addEventListener('click', showTutorial);
 
   // Export button in footer
-  exportBtn.addEventListener('click', exportData);
+  exportBtn.addEventListener('click', showExportModal);
 
   // Close modals on backdrop click
   settingsModal?.addEventListener('click', (e) => {
@@ -488,11 +488,62 @@ async function saveSettings() {
 }
 
 /**
- * Export data
+ * Show export format modal
  */
-async function exportData() {
+function showExportModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>Export Data</h2>
+        <button class="modal-close" id="closeExportModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 16px; color: var(--color-text-secondary);">
+          Choose export format:
+        </p>
+        <button class="btn-primary" id="exportJsonBtn" style="width: 100%; margin-bottom: 8px;">
+          📄 Export as JSON
+        </button>
+        <button class="btn-primary" id="exportCsvBtn" style="width: 100%; margin-bottom: 8px;">
+          📊 Export as CSV
+        </button>
+        <button class="btn-primary" id="exportMarkdownBtn" style="width: 100%;">
+          📝 Export as Markdown
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Event listeners
+  modal.querySelector('#closeExportModal').addEventListener('click', () => modal.remove());
+  modal.querySelector('#exportJsonBtn').addEventListener('click', () => {
+    exportToJSON();
+    modal.remove();
+  });
+  modal.querySelector('#exportCsvBtn').addEventListener('click', () => {
+    exportToCSV();
+    modal.remove();
+  });
+  modal.querySelector('#exportMarkdownBtn').addEventListener('click', () => {
+    exportToMarkdown();
+    modal.remove();
+  });
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+/**
+ * Export data as JSON
+ */
+async function exportToJSON() {
   try {
-    const data = await exportData();
+    const data = await getAllData();
 
     // Create download
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -503,10 +554,159 @@ async function exportData() {
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast('Data exported');
+    showToast('✅ Exported as JSON');
   } catch (error) {
-    console.error('[ChatMarker Popup] Error exporting data:', error);
+    console.error('[ChatMarker Popup] Error exporting JSON:', error);
     showToast('Error exporting data');
+  }
+}
+
+/**
+ * Export data as CSV
+ */
+async function exportToCSV() {
+  try {
+    const markers = await getMarkersArray();
+
+    // CSV headers
+    const headers = ['Date', 'Platform', 'Sender', 'Chat', 'Message', 'Labels', 'Notes', 'Reminder'];
+
+    // CSV rows
+    const rows = markers.map(marker => {
+      const date = new Date(marker.createdAt || marker.timestamp).toLocaleString();
+      const platform = capitalizeFirst(marker.platform || 'unknown');
+      const sender = marker.sender || '';
+      const chat = marker.chatName || marker.chatId || '';
+      const message = (marker.messageText || '').replace(/"/g, '""'); // Escape quotes
+      const labels = (marker.labels || []).join(', ');
+      const notes = (marker.notes || '').replace(/"/g, '""'); // Escape quotes
+
+      // Get reminder info
+      let reminderText = '';
+      const reminder = Object.values(allReminders).find(r => r.messageId === marker.messageId && r.active);
+      if (reminder) {
+        reminderText = new Date(reminder.reminderTime).toLocaleString();
+      }
+
+      return [date, platform, sender, chat, `"${message}"`, labels, `"${notes}"`, reminderText];
+    });
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chatmarker-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast(`✅ Exported ${markers.length} marks as CSV`);
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error exporting CSV:', error);
+    showToast('Error exporting CSV');
+  }
+}
+
+/**
+ * Export data as Markdown
+ */
+async function exportToMarkdown() {
+  try {
+    const markers = await getMarkersArray();
+
+    // Group by label
+    const grouped = {};
+    const unlabeled = [];
+
+    markers.forEach(marker => {
+      if (marker.labels && marker.labels.length > 0) {
+        marker.labels.forEach(label => {
+          if (!grouped[label]) grouped[label] = [];
+          grouped[label].push(marker);
+        });
+      } else {
+        unlabeled.push(marker);
+      }
+    });
+
+    // Build markdown
+    let markdown = `# ChatMarker Export\n\n`;
+    markdown += `**Exported:** ${new Date().toLocaleString()}  \n`;
+    markdown += `**Total Marks:** ${markers.length}\n\n`;
+    markdown += `---\n\n`;
+
+    // Export by label
+    const labelOrder = ['urgent', 'important', 'followup', 'question', 'completed'];
+    const labelEmoji = {
+      urgent: '🔴',
+      important: '🟡',
+      followup: '🔵',
+      question: '🟣',
+      completed: '🟢'
+    };
+
+    labelOrder.forEach(label => {
+      if (grouped[label] && grouped[label].length > 0) {
+        markdown += `## ${labelEmoji[label]} ${capitalizeFirst(label)} (${grouped[label].length})\n\n`;
+
+        grouped[label].forEach(marker => {
+          markdown += `### ${marker.sender || 'Unknown'}\n`;
+          markdown += `**Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
+          markdown += `**Platform:** ${capitalizeFirst(marker.platform)}  \n`;
+          markdown += `**Chat:** ${marker.chatName || marker.chatId || 'N/A'}  \n\n`;
+          markdown += `> ${marker.messageText || 'No text'}\n\n`;
+
+          if (marker.notes) {
+            markdown += `**Note:** ${marker.notes}\n\n`;
+          }
+
+          const reminder = Object.values(allReminders).find(r => r.messageId === marker.messageId && r.active);
+          if (reminder) {
+            markdown += `⏰ **Reminder:** ${new Date(reminder.reminderTime).toLocaleString()}\n\n`;
+          }
+
+          markdown += `---\n\n`;
+        });
+      }
+    });
+
+    // Unlabeled
+    if (unlabeled.length > 0) {
+      markdown += `## 📌 Unlabeled (${unlabeled.length})\n\n`;
+
+      unlabeled.forEach(marker => {
+        markdown += `### ${marker.sender || 'Unknown'}\n`;
+        markdown += `**Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
+        markdown += `**Platform:** ${capitalizeFirst(marker.platform)}  \n\n`;
+        markdown += `> ${marker.messageText || 'No text'}\n\n`;
+
+        if (marker.notes) {
+          markdown += `**Note:** ${marker.notes}\n\n`;
+        }
+
+        markdown += `---\n\n`;
+      });
+    }
+
+    // Create download
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chatmarker-export-${new Date().toISOString().split('T')[0]}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast(`✅ Exported ${markers.length} marks as Markdown`);
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error exporting Markdown:', error);
+    showToast('Error exporting Markdown');
   }
 }
 
@@ -521,7 +721,7 @@ async function importData(event) {
     const text = await file.text();
     const data = JSON.parse(text);
 
-    await importData(data);
+    await importAllData(data);
 
     showToast('Data imported');
 
