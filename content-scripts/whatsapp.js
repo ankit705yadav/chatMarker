@@ -1140,32 +1140,16 @@ function setupMutationObserver() {
 }
 
 /**
- * Handle context menu actions
+ * Handle context menu actions - Chat-only version
  */
 function handleContextMenuAction(menuItemId, selectionText) {
   console.log('[ChatMarker] Context menu action:', menuItemId);
 
-  // Find the message element that was right-clicked
-  // We'll look for the closest message to the current selection/cursor
-  const messageElement = findMessageElementNearSelection();
-
-  if (!messageElement) {
-    console.warn('[ChatMarker] Could not find message element for context menu action');
-    showToast('⚠️ Please click on a message first');
-    return;
-  }
-
-  const messageId = messageElement.getAttribute('data-chatmarker-id');
-  if (!messageId) {
-    console.warn('[ChatMarker] Message does not have ChatMarker ID');
-    return;
-  }
-
-  // Handle different menu actions
+  // All actions are now chat-level
   switch (menuItemId) {
-    case 'chatmarker-toggle':
-      // Toggle mark on the message
-      toggleMark(messageElement);
+    case 'chatmarker-mark-chat':
+      // Mark/unmark the current chat
+      markCurrentChat();
       break;
 
     case 'chatmarker-label-urgent':
@@ -1173,24 +1157,19 @@ function handleContextMenuAction(menuItemId, selectionText) {
     case 'chatmarker-label-completed':
     case 'chatmarker-label-followup':
     case 'chatmarker-label-question':
-      // Extract label ID from menu item ID
+      // Toggle label on current chat
       const labelId = menuItemId.replace('chatmarker-label-', '');
-      toggleLabel(messageElement, labelId);
+      toggleChatLabel(labelId);
       break;
 
     case 'chatmarker-note':
-      // Open note editor
-      openNoteModal(messageElement);
+      // Open note editor for current chat
+      openChatNoteEditor();
       break;
 
     case 'chatmarker-reminder':
-      // Open reminder picker
-      openReminderPicker(messageElement);
-      break;
-
-    case 'chatmarker-copy':
-      // Copy message text
-      copyMessageToClipboard(messageElement, selectionText);
+      // Open reminder picker for current chat
+      openChatReminderPicker();
       break;
 
     default:
@@ -1820,6 +1799,562 @@ function showKeyboardShortcutsHelp() {
  */
 function capitalizeLabel(label) {
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * Mark the current chat
+ */
+async function markCurrentChat() {
+  try {
+    const chatId = getCurrentChatId();
+    const chatName = getChatName();
+
+    if (!chatId || chatId === 'unknown') {
+      showToast('⚠️ Could not identify current chat');
+      return;
+    }
+
+    console.log('[ChatMarker] Marking chat:', chatName, chatId);
+
+    // Check if chat is already marked
+    safeSendMessage(
+      {
+        action: 'getChatMarker',
+        chatId: chatId,
+        platform: 'whatsapp'
+      },
+      async (response) => {
+        if (response && response.success && response.data) {
+          // Chat already marked - ask if user wants to unmark
+          if (confirm(`This chat is already marked. Unmark "${chatName}"?`)) {
+            await unmarkChat(response.data.chatMarkerId, chatName);
+          }
+        } else {
+          // Chat not marked - mark it
+          const chatMarker = {
+            platform: 'whatsapp',
+            chatId: chatId,
+            chatName: chatName,
+            labels: [],
+            notes: '',
+            createdAt: Date.now()
+          };
+
+          safeSendMessage(
+            {
+              action: 'saveChatMarker',
+              data: chatMarker
+            },
+            (saveResponse) => {
+              if (saveResponse && saveResponse.success) {
+                console.log('[ChatMarker] Chat marked successfully:', chatName);
+                showToast(`✅ Chat "${chatName}" marked`);
+              } else {
+                console.error('[ChatMarker] Failed to mark chat:', saveResponse?.error);
+                showToast('❌ Failed to mark chat');
+              }
+            }
+          );
+        }
+      }
+    );
+  } catch (error) {
+    console.error('[ChatMarker] Error marking chat:', error);
+    showToast('❌ Error marking chat');
+  }
+}
+
+/**
+ * Unmark a chat
+ */
+async function unmarkChat(chatMarkerId, chatName) {
+  safeSendMessage(
+    {
+      action: 'deleteChatMarker',
+      chatMarkerId: chatMarkerId
+    },
+    (response) => {
+      if (response && response.success) {
+        console.log('[ChatMarker] Chat unmarked:', chatName);
+        showToast(`✅ Chat "${chatName}" unmarked`);
+      } else {
+        console.error('[ChatMarker] Failed to unmark chat:', response?.error);
+        showToast('❌ Failed to unmark chat');
+      }
+    }
+  );
+}
+
+/**
+ * Toggle a label on the current chat
+ */
+async function toggleChatLabel(labelName) {
+  try {
+    const chatId = getCurrentChatId();
+    const chatName = getChatName();
+
+    if (!chatId || chatId === 'unknown') {
+      showToast('⚠️ Could not identify current chat');
+      return;
+    }
+
+    // Get current chat marker
+    safeSendMessage(
+      {
+        action: 'getChatMarker',
+        chatId: chatId,
+        platform: 'whatsapp'
+      },
+      async (response) => {
+        if (response && response.success && response.data) {
+          // Chat is marked - toggle label
+          const chatMarker = response.data;
+          const labels = chatMarker.labels || [];
+          const index = labels.indexOf(labelName);
+
+          if (index > -1) {
+            // Remove label
+            labels.splice(index, 1);
+            showToast(`🏷️ Label "${labelName}" removed`);
+          } else {
+            // Add label
+            labels.push(labelName);
+            showToast(`🏷️ Label "${labelName}" added`);
+          }
+
+          // Update chat marker
+          safeSendMessage(
+            {
+              action: 'saveChatMarker',
+              data: { ...chatMarker, labels, updatedAt: Date.now() }
+            },
+            (saveResponse) => {
+              if (!saveResponse || !saveResponse.success) {
+                console.error('[ChatMarker] Failed to update labels');
+                showToast('❌ Failed to update label');
+              }
+            }
+          );
+        } else {
+          // Chat not marked yet - mark it first with this label
+          const chatMarker = {
+            platform: 'whatsapp',
+            chatId: chatId,
+            chatName: chatName,
+            labels: [labelName],
+            notes: '',
+            createdAt: Date.now()
+          };
+
+          safeSendMessage(
+            {
+              action: 'saveChatMarker',
+              data: chatMarker
+            },
+            (saveResponse) => {
+              if (saveResponse && saveResponse.success) {
+                showToast(`✅ Chat marked with "${labelName}" label`);
+              } else {
+                showToast('❌ Failed to mark chat');
+              }
+            }
+          );
+        }
+      }
+    );
+  } catch (error) {
+    console.error('[ChatMarker] Error toggling chat label:', error);
+    showToast('❌ Error updating label');
+  }
+}
+
+/**
+ * Open note editor for current chat - Inline modal
+ */
+function openChatNoteEditor() {
+  const chatId = getCurrentChatId();
+  const chatName = getChatName();
+
+  if (!chatId || chatId === 'unknown') {
+    showToast('⚠️ Could not identify current chat');
+    return;
+  }
+
+  // Get current chat marker
+  safeSendMessage(
+    {
+      action: 'getChatMarker',
+      chatId: chatId,
+      platform: 'whatsapp'
+    },
+    (response) => {
+      if (response && response.success && response.data) {
+        // Chat is marked - show inline note modal
+        showInlineNoteModal(response.data);
+      } else {
+        // Chat not marked yet - mark it first, then show note modal
+        const chatMarker = {
+          platform: 'whatsapp',
+          chatId: chatId,
+          chatName: chatName,
+          labels: [],
+          notes: '',
+          createdAt: Date.now()
+        };
+
+        safeSendMessage(
+          {
+            action: 'saveChatMarker',
+            data: chatMarker
+          },
+          (saveResponse) => {
+            if (saveResponse && saveResponse.success) {
+              showInlineNoteModal(saveResponse.chatMarker);
+            } else {
+              showToast('❌ Failed to mark chat');
+            }
+          }
+        );
+      }
+    }
+  );
+}
+
+/**
+ * Open reminder picker for current chat - Inline modal
+ */
+function openChatReminderPicker() {
+  const chatId = getCurrentChatId();
+  const chatName = getChatName();
+
+  if (!chatId || chatId === 'unknown') {
+    showToast('⚠️ Could not identify current chat');
+    return;
+  }
+
+  // Get current chat marker
+  safeSendMessage(
+    {
+      action: 'getChatMarker',
+      chatId: chatId,
+      platform: 'whatsapp'
+    },
+    (response) => {
+      if (response && response.success && response.data) {
+        // Chat is marked - show inline reminder modal
+        showInlineReminderModal(response.data);
+      } else {
+        // Chat not marked yet - mark it first, then show reminder modal
+        const chatMarker = {
+          platform: 'whatsapp',
+          chatId: chatId,
+          chatName: chatName,
+          labels: [],
+          notes: '',
+          createdAt: Date.now()
+        };
+
+        safeSendMessage(
+          {
+            action: 'saveChatMarker',
+            data: chatMarker
+          },
+          (saveResponse) => {
+            if (saveResponse && saveResponse.success) {
+              showInlineReminderModal(saveResponse.chatMarker);
+            } else {
+              showToast('❌ Failed to mark chat');
+            }
+          }
+        );
+      }
+    }
+  );
+}
+
+/**
+ * Show inline note modal on WhatsApp page
+ */
+function showInlineNoteModal(chatMarker) {
+  // Remove existing modal if any
+  const existingModal = document.querySelector('.chatmarker-inline-modal');
+  if (existingModal) existingModal.remove();
+
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'chatmarker-inline-modal';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  `;
+
+  modal.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827;">Add Note to Chat</h2>
+      <button class="chatmarker-close-btn" style="background: none; border: none; font-size: 24px; color: #6B7280; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">×</button>
+    </div>
+    <div style="margin-bottom: 16px;">
+      <div style="padding: 12px; background: #F3F4F6; border-radius: 6px; margin-bottom: 16px;">
+        <strong style="color: #374151;">Chat:</strong>
+        <div style="color: #6B7280; margin-top: 4px;">${chatMarker.chatName}</div>
+      </div>
+      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Your Note:</label>
+      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." style="width: 100%; min-height: 120px; padding: 12px; border: 1px solid #D1D5DB; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical;">${chatMarker.notes || ''}</textarea>
+      <div style="text-align: right; margin-top: 4px; font-size: 12px; color: #6B7280;">
+        <span class="chatmarker-char-count">0</span> / 500
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid #D1D5DB; background: white; color: #374151; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
+      <button class="chatmarker-save-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Save Note</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Get elements
+  const textarea = modal.querySelector('.chatmarker-note-textarea');
+  const charCount = modal.querySelector('.chatmarker-char-count');
+  const closeBtn = modal.querySelector('.chatmarker-close-btn');
+  const cancelBtn = modal.querySelector('.chatmarker-cancel-btn');
+  const saveBtn = modal.querySelector('.chatmarker-save-btn');
+
+  // Update char count
+  const updateCharCount = () => {
+    charCount.textContent = textarea.value.length;
+  };
+  updateCharCount();
+  textarea.addEventListener('input', updateCharCount);
+
+  // Close handlers
+  const closeModal = () => overlay.remove();
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // Save handler
+  saveBtn.addEventListener('click', () => {
+    const noteText = textarea.value.trim();
+
+    safeSendMessage(
+      {
+        action: 'saveChatMarker',
+        data: { ...chatMarker, notes: noteText, updatedAt: Date.now() }
+      },
+      (response) => {
+        if (response && response.success) {
+          showToast('✅ Note saved');
+          closeModal();
+        } else {
+          showToast('❌ Failed to save note');
+        }
+      }
+    );
+  });
+
+  // Focus textarea
+  textarea.focus();
+}
+
+/**
+ * Show inline reminder modal on WhatsApp page
+ */
+function showInlineReminderModal(chatMarker) {
+  // Remove existing modal if any
+  const existingModal = document.querySelector('.chatmarker-inline-modal');
+  if (existingModal) existingModal.remove();
+
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'chatmarker-inline-modal';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  `;
+
+  // Get min datetime (now)
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+  modal.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827;">Set Reminder for Chat</h2>
+      <button class="chatmarker-close-btn" style="background: none; border: none; font-size: 24px; color: #6B7280; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">×</button>
+    </div>
+    <div style="margin-bottom: 16px;">
+      <div style="padding: 12px; background: #F3F4F6; border-radius: 6px; margin-bottom: 16px;">
+        <strong style="color: #374151;">Chat:</strong>
+        <div style="color: #6B7280; margin-top: 4px;">${chatMarker.chatName}</div>
+      </div>
+      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Quick Options:</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+        <button class="chatmarker-quick-reminder" data-minutes="60" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ 1 Hour</button>
+        <button class="chatmarker-quick-reminder" data-minutes="180" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ 3 Hours</button>
+        <button class="chatmarker-quick-reminder" data-minutes="1440" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ Tomorrow</button>
+        <button class="chatmarker-quick-reminder" data-minutes="10080" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ Next Week</button>
+      </div>
+      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Or choose custom date & time:</label>
+      <input type="datetime-local" class="chatmarker-custom-datetime" min="${minDateTime}" style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-family: inherit; font-size: 14px;">
+    </div>
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid #D1D5DB; background: white; color: #374151; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
+      <button class="chatmarker-save-reminder-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Set Reminder</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Get elements
+  const customDateTime = modal.querySelector('.chatmarker-custom-datetime');
+  const quickBtns = modal.querySelectorAll('.chatmarker-quick-reminder');
+  const closeBtn = modal.querySelector('.chatmarker-close-btn');
+  const cancelBtn = modal.querySelector('.chatmarker-cancel-btn');
+  const saveBtn = modal.querySelector('.chatmarker-save-reminder-btn');
+
+  // Close handlers
+  const closeModal = () => overlay.remove();
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // Quick reminder buttons
+  quickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const minutes = parseInt(btn.dataset.minutes);
+      const reminderTime = Date.now() + (minutes * 60 * 1000);
+      saveReminder(reminderTime);
+    });
+  });
+
+  // Save reminder handler
+  saveBtn.addEventListener('click', () => {
+    if (!customDateTime.value) {
+      showToast('⚠️ Please select a date and time');
+      return;
+    }
+    const reminderTime = new Date(customDateTime.value).getTime();
+    if (reminderTime <= Date.now()) {
+      showToast('⚠️ Reminder time must be in the future');
+      return;
+    }
+    saveReminder(reminderTime);
+  });
+
+  function saveReminder(reminderTime) {
+    const reminderData = {
+      messageId: chatMarker.chatMarkerId,
+      reminderTime: reminderTime,
+      title: `Reminder: ${chatMarker.chatName}`,
+      body: chatMarker.notes || 'Check this chat',
+      chatName: chatMarker.chatName,
+      platform: 'whatsapp',
+      active: true
+    };
+
+    safeSendMessage(
+      {
+        action: 'createReminder',
+        data: reminderData
+      },
+      (response) => {
+        if (response && response.success) {
+          const date = new Date(reminderTime);
+          showToast(`✅ Reminder set for ${date.toLocaleString()}`);
+          closeModal();
+        } else {
+          showToast('❌ Failed to set reminder');
+        }
+      }
+    );
+  }
+}
+
+/**
+ * Show a toast notification
+ */
+function showToast(message) {
+  // Remove existing toast if any
+  const existingToast = document.querySelector('.chatmarker-toast');
+  if (existingToast) existingToast.remove();
+
+  // Create toast
+  const toast = document.createElement('div');
+  toast.className = 'chatmarker-toast';
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #1F2937;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease;
+  `;
+
+  document.body.appendChild(toast);
+
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 // Listen for extension unload/reload

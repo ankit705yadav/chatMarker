@@ -38,7 +38,7 @@
       <div class="sidebar-stats">
         <div class="stat-item">
           <div class="stat-number" id="totalMarksCount">0</div>
-          <div class="stat-label">Marks</div>
+          <div class="stat-label">Chats</div>
         </div>
         <div class="stat-item">
           <div class="stat-number" id="activeRemindersCount">0</div>
@@ -122,9 +122,9 @@
       </div>
 
       <!-- Platform Tabs -->
-      <div class="platform-tabs">
+      <div class="platform-tabs" id="platformTabs">
         <button class="platform-tab active" data-platform="all">
-          All <span class="tab-count" id="tabCountAll">0</span>
+          All Chats <span class="tab-count" id="tabCountAll">0</span>
         </button>
         <button class="platform-tab" data-platform="whatsapp">
           WhatsApp <span class="tab-count" id="tabCountWhatsapp">0</span>
@@ -142,12 +142,12 @@
     <!-- Empty State -->
     <div class="empty-state" id="emptyState" style="display: none;">
       <div class="empty-icon-box">
-        <span class="empty-icon">⭐</span>
+        <span class="empty-icon">💬</span>
       </div>
-      <h3 class="empty-title">No marked messages yet</h3>
+      <h3 class="empty-title">No marked chats yet</h3>
       <p class="empty-text">
-        Right-click any message on WhatsApp, Messenger,<br>
-        Instagram, or LinkedIn and select "Mark Message"
+        Right-click anywhere on a chat in WhatsApp<br>
+        and select "ChatMarker" → "⭐ Mark/Unmark Chat"
       </p>
       <button class="btn-secondary" id="tutorialBtn">View Tutorial</button>
     </div>

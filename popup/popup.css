@@ -280,6 +280,57 @@ body {
   border-bottom: 1px solid var(--color-border);
 }
 
+/* View Type Selector */
+.view-type-selector {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-base);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.view-type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-base);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-type-btn:hover {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.view-type-btn.active {
+  border-color: var(--color-primary);
+  background-color: rgba(99, 102, 241, 0.08);
+  color: var(--color-primary);
+}
+
+.view-type-btn .tab-count {
+  background-color: var(--color-border);
+  color: var(--color-text-secondary);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.view-type-btn.active .tab-count {
+  background-color: var(--color-primary);
+  color: white;
+}
+
 /* Platform Tabs */
 .platform-tabs {
   display: flex;
@@ -618,7 +669,36 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-sm);
+  margin-bottom: 0;
+}
+
+/* Add spacing between header and labels/notes */
+.message-labels {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.message-card .message-labels {
+  margin-top: var(--space-md);
+}
+
+.message-card .message-note-preview {
+  margin-top: var(--space-md);
+  margin-bottom: 0;
+}
+
+.message-card .message-reminder-preview {
+  margin-top: var(--space-md);
+  margin-bottom: 0;
+}
+
+/* When multiple elements exist, add spacing between them */
+.message-card .message-labels + .message-note-preview,
+.message-card .message-labels + .message-reminder-preview,
+.message-card .message-note-preview + .message-reminder-preview {
+  margin-top: var(--space-sm);
 }
 
 .message-meta {
@@ -755,7 +835,6 @@ body {
   background-color: var(--color-surface);
   border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-sm);
-  margin-bottom: var(--space-sm);
 }
 
 .note-preview-icon {
@@ -783,7 +862,6 @@ body {
   background-color: #fffbeb;
   border-left: 3px solid #f59e0b;
   border-radius: var(--radius-sm);
-  margin-bottom: var(--space-sm);
 }
 
 body.dark-mode .message-reminder-preview {

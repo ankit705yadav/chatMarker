@@ -382,6 +382,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: true });
           break;
 
+        case 'saveChatMarker':
+          const chatMarker = await saveChatMarker(request.data);
+          await updateBadge();
+          sendResponse({ success: true, chatMarker });
+          break;
+
+        case 'deleteChatMarker':
+          await deleteChatMarker(request.chatMarkerId);
+          await updateBadge();
+          sendResponse({ success: true });
+          break;
+
+        case 'getChatMarker':
+          const fetchedChatMarker = await getChatMarkerByChatId(request.chatId, request.platform);
+          sendResponse({ success: true, data: fetchedChatMarker });
+          break;
+
+        case 'getAllChatMarkers':
+          const allChatMarkers = await getAllChatMarkers();
+          sendResponse({ success: true, data: allChatMarkers });
+          break;
+
+        case 'openSidebarWithNote':
+          // Store the pending action and chat marker data
+          await chrome.storage.local.set({
+            pendingAction: 'openNote',
+            pendingChatMarker: request.chatMarker
+          });
+          // Open the sidebar
+          await chrome.sidePanel.open({ tabId: sender.tab.id });
+          sendResponse({ success: true });
+          break;
+
+        case 'openSidebarWithReminder':
+          // Store the pending action and chat marker data
+          await chrome.storage.local.set({
+            pendingAction: 'openReminder',
+            pendingChatMarker: request.chatMarker
+          });
+          // Open the sidebar
+          await chrome.sidePanel.open({ tabId: sender.tab.id });
+          sendResponse({ success: true });
+          break;
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -404,7 +448,7 @@ function capitalizeFirst(str) {
 }
 
 /**
- * Create context menus
+ * Create context menus - Chat-only version
  */
 function createContextMenus() {
   // Remove all existing menus first
@@ -413,7 +457,7 @@ function createContextMenus() {
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
-      contexts: ['selection', 'page'],
+      contexts: ['page'],
       documentUrlPatterns: [
         'https://web.whatsapp.com/*',
         'https://www.messenger.com/*',
@@ -423,12 +467,12 @@ function createContextMenus() {
       ]
     });
 
-    // Mark/Unmark message
+    // Mark/Unmark chat
     chrome.contextMenus.create({
-      id: 'chatmarker-toggle',
+      id: 'chatmarker-mark-chat',
       parentId: 'chatmarker-main',
-      title: 'Mark Message',
-      contexts: ['selection', 'page']
+      title: '⭐ Mark/Unmark Chat',
+      contexts: ['page']
     });
 
     // Separator
@@ -436,15 +480,15 @@ function createContextMenus() {
       id: 'chatmarker-separator-1',
       parentId: 'chatmarker-main',
       type: 'separator',
-      contexts: ['selection', 'page']
+      contexts: ['page']
     });
 
     // Add labels submenu
     chrome.contextMenus.create({
       id: 'chatmarker-labels',
       parentId: 'chatmarker-main',
-      title: 'Add Label',
-      contexts: ['selection', 'page']
+      title: '🏷️ Add Label',
+      contexts: ['page']
     });
 
     // Label options
@@ -461,7 +505,7 @@ function createContextMenus() {
         id: `chatmarker-label-${label.id}`,
         parentId: 'chatmarker-labels',
         title: `${label.emoji} ${label.name}`,
-        contexts: ['selection', 'page']
+        contexts: ['page']
       });
     });
 
@@ -470,42 +514,26 @@ function createContextMenus() {
       id: 'chatmarker-separator-2',
       parentId: 'chatmarker-main',
       type: 'separator',
-      contexts: ['selection', 'page']
+      contexts: ['page']
     });
 
     // Add note
     chrome.contextMenus.create({
       id: 'chatmarker-note',
       parentId: 'chatmarker-main',
-      title: '📝 Add Note',
-      contexts: ['selection', 'page']
+      title: '📝 Add/Edit Note',
+      contexts: ['page']
     });
 
     // Set reminder
     chrome.contextMenus.create({
       id: 'chatmarker-reminder',
       parentId: 'chatmarker-main',
-      title: '⏰ Set Reminder',
-      contexts: ['selection', 'page']
+      title: '⏰ Set/Edit Reminder',
+      contexts: ['page']
     });
 
-    // Separator
-    chrome.contextMenus.create({
-      id: 'chatmarker-separator-3',
-      parentId: 'chatmarker-main',
-      type: 'separator',
-      contexts: ['selection', 'page']
-    });
-
-    // Copy text
-    chrome.contextMenus.create({
-      id: 'chatmarker-copy',
-      parentId: 'chatmarker-main',
-      title: '📋 Copy Message Text',
-      contexts: ['selection', 'page']
-    });
-
-    console.log('[ChatMarker] Context menus created');
+    console.log('[ChatMarker] Chat-only context menus created');
   });
 }
 

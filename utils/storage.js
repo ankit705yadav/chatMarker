@@ -6,6 +6,7 @@
 // Storage keys
 const STORAGE_KEYS = {
   MARKERS: 'markers',
+  CHAT_MARKERS: 'chatMarkers',
   REMINDERS: 'reminders',
   SETTINGS: 'settings',
   LABELS: 'labels'
@@ -229,6 +230,177 @@ async function clearAllMarkers() {
     throw error;
   }
 }
+
+// ==================== CHAT MARKERS ====================
+
+/**
+ * Save a chat marker
+ * @param {Object} chatMarker - Chat marker data
+ * @returns {Promise<Object>} The saved chat marker
+ */
+async function saveChatMarker(chatMarker) {
+  try {
+    // Generate chatMarkerId if not provided
+    if (!chatMarker.chatMarkerId) {
+      chatMarker.chatMarkerId = `chat_${chatMarker.platform}_${chatMarker.chatId}_${Date.now()}`;
+    }
+
+    // Add timestamps
+    if (!chatMarker.createdAt) {
+      chatMarker.createdAt = Date.now();
+    }
+    chatMarker.updatedAt = Date.now();
+
+    const chatMarkers = await getAllChatMarkers();
+    chatMarkers[chatMarker.chatMarkerId] = chatMarker;
+
+    await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: chatMarkers });
+
+    console.log('[ChatMarker] Chat marker saved:', chatMarker.chatMarkerId);
+    return chatMarker;
+  } catch (error) {
+    console.error('[ChatMarker] Error saving chat marker:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a chat marker by ID
+ * @param {string} chatMarkerId - The chat marker ID
+ * @returns {Promise<Object|null>} The chat marker or null
+ */
+async function getChatMarker(chatMarkerId) {
+  try {
+    const chatMarkers = await getAllChatMarkers();
+    return chatMarkers[chatMarkerId] || null;
+  } catch (error) {
+    console.error('[ChatMarker] Error getting chat marker:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all chat markers as an object
+ * @returns {Promise<Object>} Object of chat markers keyed by ID
+ */
+async function getAllChatMarkers() {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.CHAT_MARKERS);
+    return result[STORAGE_KEYS.CHAT_MARKERS] || {};
+  } catch (error) {
+    console.error('[ChatMarker] Error getting all chat markers:', error);
+    return {};
+  }
+}
+
+/**
+ * Get chat markers as an array (sorted by most recent)
+ * @returns {Promise<Array>} Array of chat markers
+ */
+async function getChatMarkersArray() {
+  try {
+    const chatMarkers = await getAllChatMarkers();
+    const array = Object.values(chatMarkers);
+    // Sort by most recent
+    array.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
+    return array;
+  } catch (error) {
+    console.error('[ChatMarker] Error getting chat markers array:', error);
+    return [];
+  }
+}
+
+/**
+ * Get chat marker by chatId and platform
+ * @param {string} chatId - The chat ID
+ * @param {string} platform - The platform
+ * @returns {Promise<Object|null>} The chat marker or null
+ */
+async function getChatMarkerByChatId(chatId, platform) {
+  try {
+    const chatMarkers = await getAllChatMarkers();
+    const marker = Object.values(chatMarkers).find(
+      m => m.chatId === chatId && m.platform === platform
+    );
+    return marker || null;
+  } catch (error) {
+    console.error('[ChatMarker] Error getting chat marker by chatId:', error);
+    return null;
+  }
+}
+
+/**
+ * Update a chat marker
+ * @param {string} chatMarkerId - The chat marker ID
+ * @param {Object} updates - Updates to apply
+ * @returns {Promise<Object>} The updated chat marker
+ */
+async function updateChatMarker(chatMarkerId, updates) {
+  try {
+    const chatMarkers = await getAllChatMarkers();
+    const existing = chatMarkers[chatMarkerId];
+
+    if (!existing) {
+      throw new Error(`Chat marker not found: ${chatMarkerId}`);
+    }
+
+    const updated = {
+      ...existing,
+      ...updates,
+      updatedAt: Date.now()
+    };
+
+    chatMarkers[chatMarkerId] = updated;
+    await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: chatMarkers });
+
+    console.log('[ChatMarker] Chat marker updated:', chatMarkerId);
+    return updated;
+  } catch (error) {
+    console.error('[ChatMarker] Error updating chat marker:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a chat marker
+ * @param {string} chatMarkerId - The chat marker ID
+ * @returns {Promise<boolean>} Success status
+ */
+async function deleteChatMarker(chatMarkerId) {
+  try {
+    const chatMarkers = await getAllChatMarkers();
+
+    if (!chatMarkers[chatMarkerId]) {
+      return false;
+    }
+
+    delete chatMarkers[chatMarkerId];
+    await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: chatMarkers });
+
+    console.log('[ChatMarker] Chat marker deleted:', chatMarkerId);
+    return true;
+  } catch (error) {
+    console.error('[ChatMarker] Error deleting chat marker:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear all chat markers
+ * @returns {Promise<boolean>} Success status
+ */
+async function clearAllChatMarkers() {
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: {} });
+    console.log('[ChatMarker] All chat markers cleared');
+    return true;
+  } catch (error) {
+    console.error('[ChatMarker] Error clearing chat markers:', error);
+    throw error;
+  }
+}
+
+// ==================== REMINDERS ====================
 
 /**
  * Save a reminder
@@ -532,14 +704,16 @@ async function getStorageStats() {
 async function exportData() {
   try {
     const markers = await getAllMarkers();
+    const chatMarkers = await getAllChatMarkers();
     const reminders = await getAllReminders();
     const settings = await getSettings();
     const labels = await getLabels();
 
     return {
-      version: '1.0',
+      version: '1.1',
       exportedAt: new Date().toISOString(),
       markers,
+      chatMarkers,
       reminders,
       settings,
       labels
@@ -563,6 +737,9 @@ async function importData(data) {
 
     if (data.markers) {
       await chrome.storage.local.set({ [STORAGE_KEYS.MARKERS]: data.markers });
+    }
+    if (data.chatMarkers) {
+      await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: data.chatMarkers });
     }
     if (data.reminders) {
       await chrome.storage.local.set({ [STORAGE_KEYS.REMINDERS]: data.reminders });

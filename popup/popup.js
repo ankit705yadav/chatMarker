@@ -3,12 +3,13 @@
  * Handles UI logic and user interactions
  */
 
-// State
-let allMarkers = [];
+// State - Chat-only version
+let allChatMarkers = [];
 let allReminders = {};
-let filteredMarkers = [];
+let filteredChatMarkers = [];
 let currentEditingNoteId = null;
 let currentSettings = {};
+let currentPlatform = 'all'; // 'all' or 'whatsapp'
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
@@ -56,19 +57,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set up event listeners
   setupEventListeners();
 
+  // Check for pending actions (from context menu)
+  await checkPendingActions();
+
   console.log('[ChatMarker Popup] Initialized');
 });
 
 /**
- * Load all markers from storage
+ * Check for pending actions from context menu
+ */
+async function checkPendingActions() {
+  try {
+    const { pendingAction, pendingChatMarker } = await chrome.storage.local.get([
+      'pendingAction',
+      'pendingChatMarker'
+    ]);
+
+    if (pendingAction && pendingChatMarker) {
+      console.log('[ChatMarker Popup] Found pending action:', pendingAction);
+
+      // Clear the pending action
+      await chrome.storage.local.remove(['pendingAction', 'pendingChatMarker']);
+
+      // Execute the pending action
+      if (pendingAction === 'openNote') {
+        openNoteEditorForChat(pendingChatMarker);
+      } else if (pendingAction === 'openReminder') {
+        openReminderPickerForChat(pendingChatMarker);
+      }
+    }
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error checking pending actions:', error);
+  }
+}
+
+/**
+ * Load all chat markers from storage
  */
 async function loadMarkers() {
   try {
     showLoading();
 
-    // Get all markers
-    allMarkers = await getMarkersArray();
-    console.log(`[ChatMarker Popup] Loaded ${allMarkers.length} markers`);
+    // Get all chat markers
+    allChatMarkers = await getChatMarkersArray();
+    console.log(`[ChatMarker Popup] Loaded ${allChatMarkers.length} chat markers`);
 
     // Get all reminders
     allReminders = await getAllReminders();
@@ -84,20 +116,18 @@ async function loadMarkers() {
 }
 
 /**
- * Apply current filters and search
+ * Apply current filters and search - Chat-only version
  */
 function applyFilters() {
-  let filtered = [...allMarkers];
+  let filtered = [...allChatMarkers];
 
   // Apply search
   const searchTerm = searchInput.value.trim().toLowerCase();
   if (searchTerm) {
-    filtered = filtered.filter(marker => {
+    filtered = filtered.filter(chat => {
       return (
-        marker.messageText?.toLowerCase().includes(searchTerm) ||
-        marker.sender?.toLowerCase().includes(searchTerm) ||
-        marker.chatName?.toLowerCase().includes(searchTerm) ||
-        marker.notes?.toLowerCase().includes(searchTerm)
+        chat.chatName?.toLowerCase().includes(searchTerm) ||
+        chat.notes?.toLowerCase().includes(searchTerm)
       );
     });
   }
@@ -106,7 +136,7 @@ function applyFilters() {
   const activeTab = document.querySelector('.platform-tab.active');
   const platform = activeTab ? activeTab.dataset.platform : 'all';
   if (platform !== 'all') {
-    filtered = filtered.filter(m => m.platform === platform);
+    filtered = filtered.filter(c => c.platform === platform);
   }
 
   // Apply label filter (multi-select checkboxes)
@@ -115,10 +145,9 @@ function applyFilters() {
     .map(cb => cb.value);
 
   if (selectedLabels.length > 0 && selectedLabels.length < 5) {
-    // If not all labels selected, filter by selected ones
-    filtered = filtered.filter(m => {
-      if (!m.labels || m.labels.length === 0) return false;
-      return m.labels.some(label => selectedLabels.includes(label));
+    filtered = filtered.filter(c => {
+      if (!c.labels || c.labels.length === 0) return false;
+      return c.labels.some(label => selectedLabels.includes(label));
     });
   }
 
@@ -143,12 +172,14 @@ function applyFilters() {
     }
 
     if (minTime > 0) {
-      filtered = filtered.filter(m => m.createdAt >= minTime);
+      filtered = filtered.filter(c => c.createdAt >= minTime);
     }
   }
 
-  filteredMarkers = filtered;
-  displayMarkers();
+  filteredChatMarkers = filtered;
+
+  // Display chats
+  displayChatMarkers();
   updateTabCounts();
   updateStatsBox();
 }
@@ -158,7 +189,7 @@ function applyFilters() {
  */
 function updateStatsBox() {
   if (totalMarksCount) {
-    totalMarksCount.textContent = allMarkers.length;
+    totalMarksCount.textContent = allChatMarkers.length;
   }
 
   if (activeRemindersCount) {
@@ -171,8 +202,8 @@ function updateStatsBox() {
  * Update tab counts
  */
 function updateTabCounts() {
-  const allCount = allMarkers.length;
-  const whatsappCount = allMarkers.filter(m => m.platform === 'whatsapp').length;
+  const allCount = allChatMarkers.length;
+  const whatsappCount = allChatMarkers.filter(c => c.platform === 'whatsapp').length;
 
   const tabCountAll = document.getElementById('tabCountAll');
   const tabCountWhatsapp = document.getElementById('tabCountWhatsapp');
@@ -182,35 +213,345 @@ function updateTabCounts() {
 }
 
 /**
- * Display markers in the list
+ * Display chat markers in the list
  */
-function displayMarkers() {
+function displayChatMarkers() {
   hideAllStates();
-  messageList.innerHTML = ''; // Clear message list first
+  messageList.innerHTML = ''; // Clear list first
 
-  if (allMarkers.length === 0) {
-    // No markers at all
+  if (allChatMarkers.length === 0) {
+    // No chat markers at all
     emptyState.style.display = 'flex';
-    resultCount.textContent = 'No marked messages';
+    // Update empty state text for chats
+    const emptyTitle = document.querySelector('#emptyState .empty-title');
+    const emptyText = document.querySelector('#emptyState .empty-text');
+    if (emptyTitle) emptyTitle.textContent = 'No marked chats yet';
+    if (emptyText) emptyText.innerHTML = 'Right-click anywhere on a chat in WhatsApp<br>and select "Mark This Chat"';
+    resultCount.textContent = 'No marked chats';
     return;
   }
 
-  if (filteredMarkers.length === 0) {
+  if (filteredChatMarkers.length === 0) {
     // No results after filtering
     noResultsState.style.display = 'flex';
-    resultCount.textContent = `0 of ${allMarkers.length} marked messages`;
+    resultCount.textContent = `0 of ${allChatMarkers.length} marked chats`;
     return;
   }
 
-  // Display filtered markers
-
-  filteredMarkers.forEach(marker => {
-    const card = createMessageCard(marker);
+  // Display filtered chat markers
+  filteredChatMarkers.forEach(chatMarker => {
+    const card = createChatCard(chatMarker);
     messageList.appendChild(card);
   });
 
-  // Update result count - always show "Showing X of Y" format per design spec
-  resultCount.textContent = `Showing ${filteredMarkers.length} of ${allMarkers.length} marked message${allMarkers.length === 1 ? '' : 's'}`;
+  // Update result count
+  resultCount.textContent = `Showing ${filteredChatMarkers.length} of ${allChatMarkers.length} marked chat${allChatMarkers.length === 1 ? '' : 's'}`;
+}
+
+/**
+ * Create a chat card element
+ */
+function createChatCard(chatMarker) {
+  const card = document.createElement('div');
+  card.className = 'message-card chat-card';
+  card.dataset.chatMarkerId = chatMarker.chatMarkerId;
+
+  // Platform icon
+  const platformIcon = getPlatformIcon(chatMarker.platform);
+  const platformName = capitalizeFirst(chatMarker.platform);
+
+  // Time ago
+  const timeAgo = getTimeAgo(chatMarker.createdAt);
+
+  // Generate profile initials
+  const generateInitials = (name) => {
+    if (!name || name === 'Unknown' || name === 'Unknown Chat') {
+      return '?';
+    }
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+
+  const profileInitials = generateInitials(chatMarker.chatName);
+
+  // Labels HTML
+  const labelsHTML = chatMarker.labels && chatMarker.labels.length > 0
+    ? chatMarker.labels.map(label => `<span class="label-badge ${label}">${capitalizeFirst(label)}</span>`).join('')
+    : '';
+
+  // Find active reminder for this chat
+  const chatReminder = Object.values(allReminders).find(
+    r => r.messageId === chatMarker.chatMarkerId && r.active && !r.firedAt
+  );
+
+  // Note preview HTML
+  const notePreviewHTML = chatMarker.notes && chatMarker.notes.trim()
+    ? `<div class="message-note-preview">
+         <div class="note-preview-icon">📝</div>
+         <div class="note-preview-text">${escapeHtml(chatMarker.notes)}</div>
+       </div>`
+    : '';
+
+  // Reminder preview HTML
+  const reminderPreviewHTML = chatReminder
+    ? `<div class="message-reminder-preview">
+         <div class="reminder-preview-icon">⏰</div>
+         <div class="reminder-preview-text">
+           Reminder: ${formatReminderTime(chatReminder.reminderTime)}
+         </div>
+       </div>`
+    : '';
+
+  card.innerHTML = `
+    <div class="message-header">
+      <div class="message-meta">
+        <div class="profile-avatar">
+          <div class="avatar-circle">${profileInitials}</div>
+        </div>
+        <div class="message-info">
+          <div class="chat-name-row">
+            <span class="chat-name">${escapeHtml(chatMarker.chatName)}</span>
+            <span class="platform-badge">${platformIcon} ${platformName}</span>
+          </div>
+          <div class="message-timestamp">Marked ${timeAgo}</div>
+        </div>
+      </div>
+      <div class="message-actions">
+        <button class="icon-btn" title="Add/Edit Labels" data-action="labels">
+          <span>🏷️</span>
+        </button>
+        <button class="icon-btn" title="Add/Edit Note" data-action="note">
+          <span>📝</span>
+        </button>
+        <button class="icon-btn" title="Set/Edit Reminder" data-action="reminder">
+          <span>⏰</span>
+        </button>
+        <button class="icon-btn delete-btn" title="Unmark Chat" data-action="delete">
+          <span>🗑️</span>
+        </button>
+      </div>
+    </div>
+    ${labelsHTML ? `<div class="message-labels">${labelsHTML}</div>` : ''}
+    ${notePreviewHTML}
+    ${reminderPreviewHTML}
+  `;
+
+  // Add click handler for card actions
+  const actionButtons = card.querySelectorAll('[data-action]');
+  actionButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      handleChatCardAction(action, chatMarker);
+    });
+  });
+
+  return card;
+}
+
+/**
+ * Handle chat card actions
+ */
+function handleChatCardAction(action, chatMarker) {
+  switch (action) {
+    case 'labels':
+      openLabelsModalForChat(chatMarker);
+      break;
+    case 'note':
+      openNoteEditorForChat(chatMarker);
+      break;
+    case 'reminder':
+      openReminderPickerForChat(chatMarker);
+      break;
+    case 'delete':
+      removeChatMarker(chatMarker);
+      break;
+  }
+}
+
+/**
+ * Open labels modal for a chat
+ */
+function openLabelsModalForChat(chatMarker) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  overlay.style.display = 'flex';
+
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
+  modalContent.style.maxWidth = '400px';
+
+  // Available labels
+  const availableLabels = [
+    { id: 'urgent', name: 'Urgent', emoji: '🔴', color: '#EF4444' },
+    { id: 'important', name: 'Important', emoji: '🟡', color: '#F59E0B' },
+    { id: 'completed', name: 'Completed', emoji: '🟢', color: '#10B981' },
+    { id: 'followup', name: 'Follow-up', emoji: '🔵', color: '#3B82F6' },
+    { id: 'question', name: 'Question', emoji: '🟣', color: '#8B5CF6' }
+  ];
+
+  // Current labels
+  const currentLabels = chatMarker.labels || [];
+
+  modalContent.innerHTML = `
+    <div class="modal-header">
+      <h2>Manage Labels</h2>
+      <button class="modal-close" id="closeLabelsModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding: 12px; background: var(--color-surface); border-radius: 6px; margin-bottom: 16px;">
+        <strong>Chat:</strong>
+        <div style="color: var(--color-text-secondary); margin-top: 4px;">${escapeHtml(chatMarker.chatName)}</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        ${availableLabels.map(label => `
+          <label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid ${currentLabels.includes(label.id) ? label.color : 'var(--color-border)'}; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+            <input type="checkbox" value="${label.id}" ${currentLabels.includes(label.id) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
+            <span style="font-size: 20px;">${label.emoji}</span>
+            <span style="font-weight: 500; flex: 1;">${label.name}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="cancelLabels">Cancel</button>
+      <button class="btn-primary" id="saveLabels">Save Labels</button>
+    </div>
+  `;
+
+  overlay.appendChild(modalContent);
+  document.body.appendChild(overlay);
+
+  // Close handlers
+  const closeModal = () => overlay.remove();
+  document.getElementById('closeLabelsModal').addEventListener('click', closeModal);
+  document.getElementById('cancelLabels').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // Save handler
+  document.getElementById('saveLabels').addEventListener('click', async () => {
+    const checkboxes = modalContent.querySelectorAll('input[type="checkbox"]');
+    const selectedLabels = Array.from(checkboxes)
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+
+    try {
+      await updateChatMarker(chatMarker.chatMarkerId, {
+        labels: selectedLabels
+      });
+
+      showToast('Labels updated');
+      closeModal();
+      await loadMarkers();
+    } catch (error) {
+      console.error('[ChatMarker Popup] Error updating labels:', error);
+      showToast('Error updating labels');
+    }
+  });
+
+  // Update border colors on checkbox change
+  const checkboxes = modalContent.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach((checkbox, index) => {
+    checkbox.addEventListener('change', () => {
+      const label = checkbox.closest('label');
+      const labelColor = availableLabels[index].color;
+      label.style.borderColor = checkbox.checked ? labelColor : 'var(--color-border)';
+    });
+  });
+}
+
+/**
+ * Delete a chat marker
+ */
+async function removeChatMarker(chatMarker) {
+  if (!confirm(`Unmark chat "${chatMarker.chatName}"?`)) {
+    return;
+  }
+
+  try {
+    await deleteChatMarker(chatMarker.chatMarkerId);
+    showToast(`Chat "${chatMarker.chatName}" unmarked`);
+    await loadMarkers();
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error deleting chat marker:', error);
+    showToast('Error unmarking chat');
+  }
+}
+
+/**
+ * Open note editor for a chat
+ */
+function openNoteEditorForChat(chatMarker) {
+  // Store the chat marker ID
+  currentEditingNoteId = chatMarker.chatMarkerId;
+
+  // Set chat preview
+  const noteMessagePreview = document.getElementById('noteMessagePreview');
+  noteMessagePreview.textContent = `Chat: ${chatMarker.chatName}`;
+
+  // Update modal title
+  const modalTitle = noteModal.querySelector('.modal-header h2');
+  if (modalTitle) modalTitle.textContent = 'Add Note to Chat';
+
+  // Set current note
+  const noteTextarea = document.getElementById('noteTextarea');
+  noteTextarea.value = chatMarker.notes || '';
+  updateCharCounter();
+
+  // Show modal
+  noteModal.style.display = 'flex';
+  noteTextarea.focus();
+}
+
+/**
+ * Open reminder picker for a chat
+ */
+function openReminderPickerForChat(chatMarker) {
+  const reminderModal = document.getElementById('reminderModal');
+  const reminderMessagePreview = document.getElementById('reminderMessagePreview');
+  const customReminderDate = document.getElementById('customReminderDate');
+  const currentReminderInfo = document.getElementById('currentReminderInfo');
+  const currentReminderText = document.getElementById('currentReminderText');
+
+  // Store current chat marker ID
+  currentEditingNoteId = chatMarker.chatMarkerId;
+
+  // Update modal title
+  const modalTitle = reminderModal.querySelector('.modal-header h2');
+  if (modalTitle) modalTitle.textContent = 'Set Reminder for Chat';
+
+  // Show chat preview
+  reminderMessagePreview.textContent = `Chat: ${chatMarker.chatName}`;
+
+  // Check if reminder already exists
+  const existingReminder = Object.values(allReminders).find(
+    r => r.messageId === chatMarker.chatMarkerId && r.active && !r.firedAt
+  );
+
+  if (existingReminder) {
+    currentReminderInfo.style.display = 'block';
+    currentReminderText.textContent = formatReminderTime(existingReminder.reminderTime);
+  } else {
+    currentReminderInfo.style.display = 'none';
+  }
+
+  // Set min datetime to now
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  customReminderDate.min = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+  // Show modal
+  reminderModal.style.display = 'flex';
 }
 
 /**
@@ -364,7 +705,7 @@ function createMessageCard(marker) {
 }
 
 /**
- * Set up event listeners
+ * Set up event listeners - Chat-only version
  */
 function setupEventListeners() {
   // Search
@@ -555,6 +896,11 @@ async function deleteMarkerById(messageId) {
  */
 function openNoteEditor(marker) {
   currentEditingNoteId = marker.messageId;
+  currentEditingNoteType = 'message';
+
+  // Reset modal title
+  const modalTitle = noteModal.querySelector('.modal-header h2');
+  if (modalTitle) modalTitle.textContent = 'Add Note';
 
   // Set message preview
   document.getElementById('noteMessagePreview').textContent = marker.messageText || 'No message text';
@@ -578,7 +924,7 @@ function closeNoteModal() {
 }
 
 /**
- * Save note
+ * Save note - Chat-only version
  */
 async function saveNote() {
   try {
@@ -586,8 +932,8 @@ async function saveNote() {
 
     if (!currentEditingNoteId) return;
 
-    // Update marker
-    await updateMarker(currentEditingNoteId, {
+    // Update chat marker
+    await updateChatMarker(currentEditingNoteId, {
       notes: noteText
     });
 
@@ -628,8 +974,13 @@ function openReminderPicker(marker) {
   const currentReminderInfo = document.getElementById('currentReminderInfo');
   const currentReminderText = document.getElementById('currentReminderText');
 
-  // Store current marker ID
+  // Store current marker ID and type
   currentEditingNoteId = marker.messageId;
+  currentEditingNoteType = 'message';
+
+  // Reset modal title
+  const modalTitle = reminderModal.querySelector('.modal-header h2');
+  if (modalTitle) modalTitle.textContent = 'Set Reminder';
 
   // Show message preview
   reminderMessagePreview.textContent = marker.messageText || 'No message text';
@@ -1200,10 +1551,10 @@ async function importData(event) {
 }
 
 /**
- * Clear all data
+ * Clear all data - Chat-only version
  */
 async function clearAllData() {
-  if (!confirm('Are you sure you want to delete ALL marked messages and reminders? This cannot be undone.')) {
+  if (!confirm('Are you sure you want to delete ALL marked chats and reminders? This cannot be undone.')) {
     return;
   }
 
@@ -1212,10 +1563,10 @@ async function clearAllData() {
   }
 
   try {
-    // Clear both markers and reminders
-    await clearAllMarkers();
+    // Clear chat markers and reminders
+    await clearAllChatMarkers();
     await clearAllReminders();
-    showToast('All marks and reminders cleared');
+    showToast('All data cleared');
 
     // Reload
     await loadMarkers();
