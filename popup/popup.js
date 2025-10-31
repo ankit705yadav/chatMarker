@@ -187,8 +187,21 @@ function createMessageCard(marker) {
   const chatName = marker.chatName || marker.sender || 'Unknown';
   const senderName = marker.sender || 'Unknown';
 
-  // Generate profile initials (first letter of chat name)
-  const profileInitials = chatName.charAt(0).toUpperCase();
+  // Generate profile initials (first letter of chat name, or first letter of each word for 2-word names)
+  const generateInitials = (name) => {
+    if (!name || name === 'Unknown' || name === 'Unknown Chat') {
+      return '?';
+    }
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      // Two or more words: use first letter of first two words
+      return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    }
+    // Single word: use first letter
+    return name.charAt(0).toUpperCase();
+  };
+
+  const profileInitials = generateInitials(chatName);
 
   // Labels HTML
   const labelsHTML = marker.labels && marker.labels.length > 0

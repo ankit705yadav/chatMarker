@@ -251,8 +251,28 @@ function getCurrentChatId() {
  * Extract chat name from header
  */
 function getChatName() {
-  const titleElement = document.querySelector(SELECTORS.chatTitle);
-  return titleElement ? titleElement.textContent.trim() : 'Unknown Chat';
+  // Try multiple selectors for chat title (WhatsApp structure changes frequently)
+  const selectors = [
+    'span[data-testid="conversation-title"]',
+    'header[data-testid="conversation-header"] span[title]',
+    'header[data-testid="conversation-header"] span[dir="auto"]',
+    '#main header span[dir="auto"]',
+    'header .copyable-text span'
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      const name = element.textContent.trim();
+      if (name && name.length > 0) {
+        console.log('[ChatMarker] Found chat name:', name, 'using selector:', selector);
+        return name;
+      }
+    }
+  }
+
+  console.warn('[ChatMarker] Could not find chat name, using fallback');
+  return 'Unknown Chat';
 }
 
 /**
