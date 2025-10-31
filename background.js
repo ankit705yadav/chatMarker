@@ -23,6 +23,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     when: Date.now() + (24 * 60 * 60 * 1000), // 24 hours from now
     periodInMinutes: 24 * 60 // Repeat every 24 hours
   });
+
+  // Update badge on install
+  await updateBadge();
 });
 
 /**
@@ -282,19 +285,31 @@ async function performDailyCleanup() {
 }
 
 /**
- * Update extension badge with reminder count
+ * Update extension badge with mark count
  */
 async function updateBadge() {
   try {
-    const activeReminders = await getActiveReminders();
-    const count = activeReminders.length;
+    const markers = await getAllMarkers();
+    const markerCount = Object.keys(markers).length;
 
-    if (count > 0) {
-      chrome.action.setBadgeText({ text: count.toString() });
-      chrome.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red
+    const activeReminders = await getActiveReminders();
+    const reminderCount = activeReminders.length;
+
+    // Show marker count primarily, with reminder indicator
+    if (markerCount > 0) {
+      chrome.action.setBadgeText({ text: markerCount.toString() });
+
+      // If there are pending reminders, use orange, otherwise use blue
+      if (reminderCount > 0) {
+        chrome.action.setBadgeBackgroundColor({ color: '#F59E0B' }); // Orange (has reminders)
+      } else {
+        chrome.action.setBadgeBackgroundColor({ color: '#6366F1' }); // Primary blue
+      }
     } else {
       chrome.action.setBadgeText({ text: '' });
     }
+
+    console.log(`[ChatMarker] Badge updated: ${markerCount} marks, ${reminderCount} reminders`);
   } catch (error) {
     console.error('[ChatMarker] Error updating badge:', error);
   }
@@ -312,11 +327,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       switch (request.action) {
         case 'saveMarker':
           const marker = await saveMarker(request.data);
+          await updateBadge(); // Update badge when marker is saved
           sendResponse({ success: true, marker });
           break;
 
         case 'deleteMarker':
           await deleteMarker(request.messageId);
+          await updateBadge(); // Update badge when marker is deleted
           sendResponse({ success: true });
           break;
 
