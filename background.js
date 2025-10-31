@@ -288,19 +288,19 @@ async function performDailyCleanup() {
 }
 
 /**
- * Update extension badge with mark count
+ * Update extension badge with chat marker count
  */
 async function updateBadge() {
   try {
-    const markers = await getAllMarkers();
-    const markerCount = Object.keys(markers).length;
+    const chatMarkers = await getAllChatMarkers();
+    const chatMarkerCount = Object.keys(chatMarkers).length;
 
     const activeReminders = await getActiveReminders();
     const reminderCount = activeReminders.length;
 
-    // Show marker count primarily, with reminder indicator
-    if (markerCount > 0) {
-      chrome.action.setBadgeText({ text: markerCount.toString() });
+    // Show chat marker count primarily, with reminder indicator
+    if (chatMarkerCount > 0) {
+      chrome.action.setBadgeText({ text: chatMarkerCount.toString() });
 
       // If there are pending reminders, use orange, otherwise use blue
       if (reminderCount > 0) {
@@ -312,7 +312,7 @@ async function updateBadge() {
       chrome.action.setBadgeText({ text: '' });
     }
 
-    console.log(`[ChatMarker] Badge updated: ${markerCount} marks, ${reminderCount} reminders`);
+    console.log(`[ChatMarker] Badge updated: ${chatMarkerCount} chat marks, ${reminderCount} reminders`);
   } catch (error) {
     console.error('[ChatMarker] Error updating badge:', error);
   }
