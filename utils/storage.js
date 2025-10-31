@@ -325,6 +325,20 @@ async function deleteReminder(reminderId) {
 }
 
 /**
+ * Clear all reminders
+ * @returns {Promise<void>}
+ */
+async function clearAllReminders() {
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEYS.REMINDERS]: {} });
+    console.log('[ChatMarker] All reminders cleared');
+  } catch (error) {
+    console.error('[ChatMarker] Error clearing reminders:', error);
+    throw error;
+  }
+}
+
+/**
  * Get settings
  * @returns {Promise<Object>} Settings object
  */

@@ -305,6 +305,9 @@ function createMessageCard(marker) {
         <button class="message-action-btn edit-note-btn" title="Add/Edit Note" data-id="${marker.messageId}">
           📝
         </button>
+        <button class="message-action-btn edit-reminder-btn" title="Set/Edit Reminder" data-id="${marker.messageId}">
+          ⏰
+        </button>
         <button class="message-action-btn delete-btn" title="Delete Mark" data-id="${marker.messageId}">
           🗑️
         </button>
@@ -341,6 +344,12 @@ function createMessageCard(marker) {
   card.querySelector('.edit-note-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     openNoteEditor(marker);
+  });
+
+  // Edit reminder button
+  card.querySelector('.edit-reminder-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openReminderPicker(marker);
   });
 
   // Delete button
@@ -432,6 +441,27 @@ function setupEventListeners() {
   document.getElementById('saveNote')?.addEventListener('click', saveNote);
   document.getElementById('noteTextarea')?.addEventListener('input', updateCharCounter);
 
+  // Reminder modal
+  const closeReminder = document.getElementById('closeReminder');
+  const cancelReminder = document.getElementById('cancelReminder');
+  const saveReminder = document.getElementById('saveReminder');
+  const reminderModal = document.getElementById('reminderModal');
+  const deleteReminderBtn = document.getElementById('deleteReminderBtn');
+  const reminderQuickBtns = document.querySelectorAll('.reminder-quick-btn');
+
+  closeReminder?.addEventListener('click', closeReminderModal);
+  cancelReminder?.addEventListener('click', closeReminderModal);
+  saveReminder?.addEventListener('click', () => saveReminderFromModal());
+  deleteReminderBtn?.addEventListener('click', deleteExistingReminder);
+
+  // Quick reminder buttons
+  reminderQuickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const minutes = parseInt(btn.dataset.minutes);
+      saveReminderFromModal(minutes);
+    });
+  });
+
   // Tutorial button
   document.getElementById('tutorialBtn')?.addEventListener('click', showTutorial);
 
@@ -445,6 +475,12 @@ function setupEventListeners() {
   noteModal?.addEventListener('click', (e) => {
     if (e.target === noteModal) {
       closeNoteModal();
+    }
+  });
+
+  reminderModal?.addEventListener('click', (e) => {
+    if (e.target === reminderModal) {
+      closeReminderModal();
     }
   });
 }
@@ -579,6 +615,143 @@ function updateCharCounter() {
     charCounter.style.color = 'var(--color-error)';
   } else {
     charCounter.style.color = 'var(--color-text-tertiary)';
+  }
+}
+
+/**
+ * Open reminder picker modal
+ */
+function openReminderPicker(marker) {
+  const reminderModal = document.getElementById('reminderModal');
+  const reminderMessagePreview = document.getElementById('reminderMessagePreview');
+  const customReminderDate = document.getElementById('customReminderDate');
+  const currentReminderInfo = document.getElementById('currentReminderInfo');
+  const currentReminderText = document.getElementById('currentReminderText');
+
+  // Store current marker ID
+  currentEditingNoteId = marker.messageId;
+
+  // Show message preview
+  reminderMessagePreview.textContent = marker.messageText || 'No message text';
+
+  // Check if reminder already exists
+  const existingReminder = Object.values(allReminders).find(
+    r => r.messageId === marker.messageId && r.active && !r.firedAt
+  );
+
+  if (existingReminder) {
+    currentReminderInfo.style.display = 'block';
+    currentReminderText.textContent = formatReminderTime(existingReminder.reminderTime);
+  } else {
+    currentReminderInfo.style.display = 'none';
+  }
+
+  // Set min datetime to now
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+  customReminderDate.min = minDateTime;
+  customReminderDate.value = '';
+
+  reminderModal.style.display = 'flex';
+}
+
+/**
+ * Close reminder picker modal
+ */
+function closeReminderModal() {
+  const reminderModal = document.getElementById('reminderModal');
+  reminderModal.style.display = 'none';
+  currentEditingNoteId = null;
+}
+
+/**
+ * Save reminder
+ */
+async function saveReminderFromModal(minutes = null) {
+  if (!currentEditingNoteId) return;
+
+  try {
+    let reminderTime;
+
+    if (minutes) {
+      // Quick option selected
+      reminderTime = Date.now() + (minutes * 60 * 1000);
+    } else {
+      // Custom datetime selected
+      const customReminderDate = document.getElementById('customReminderDate');
+      if (!customReminderDate.value) {
+        showToast('Please select a date and time');
+        return;
+      }
+      reminderTime = new Date(customReminderDate.value).getTime();
+    }
+
+    // Check if reminder already exists for this message
+    const existingReminder = Object.values(allReminders).find(
+      r => r.messageId === currentEditingNoteId && r.active && !r.firedAt
+    );
+
+    let reminderData;
+
+    if (existingReminder) {
+      // Update existing reminder (keep same ID)
+      reminderData = {
+        ...existingReminder,
+        reminderTime: reminderTime,
+        updatedAt: Date.now()
+      };
+    } else {
+      // Create new reminder
+      reminderData = {
+        messageId: currentEditingNoteId,
+        reminderTime: reminderTime,
+        active: true,
+        createdAt: Date.now()
+      };
+    }
+
+    // Save reminder (will replace existing one with same ID)
+    await saveReminder(reminderData);
+
+    showToast('✅ Reminder set successfully');
+    closeReminderModal();
+
+    // Reload markers to update UI
+    await loadMarkers();
+
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error saving reminder:', error);
+    showToast('❌ Error setting reminder');
+  }
+}
+
+/**
+ * Delete existing reminder
+ */
+async function deleteExistingReminder() {
+  if (!currentEditingNoteId) return;
+
+  try {
+    // Find reminder for this message
+    const existingReminder = Object.values(allReminders).find(
+      r => r.messageId === currentEditingNoteId && r.active && !r.firedAt
+    );
+
+    if (existingReminder) {
+      await deleteReminder(existingReminder.reminderId);
+      showToast('✅ Reminder deleted');
+      closeReminderModal();
+      await loadMarkers();
+    }
+
+  } catch (error) {
+    console.error('[ChatMarker Popup] Error deleting reminder:', error);
+    showToast('❌ Error deleting reminder');
   }
 }
 
@@ -1030,7 +1203,7 @@ async function importData(event) {
  * Clear all data
  */
 async function clearAllData() {
-  if (!confirm('Are you sure you want to delete ALL marked messages? This cannot be undone.')) {
+  if (!confirm('Are you sure you want to delete ALL marked messages and reminders? This cannot be undone.')) {
     return;
   }
 
@@ -1039,8 +1212,10 @@ async function clearAllData() {
   }
 
   try {
+    // Clear both markers and reminders
     await clearAllMarkers();
-    showToast('All marks cleared');
+    await clearAllReminders();
+    showToast('All marks and reminders cleared');
 
     // Reload
     await loadMarkers();
