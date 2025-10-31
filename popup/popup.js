@@ -13,9 +13,6 @@ let currentSettings = {};
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
 const clearSearch = document.getElementById('clearSearch');
-const platformFilter = document.getElementById('platformFilter');
-const labelFilter = document.getElementById('labelFilter');
-const dateFilter = document.getElementById('dateFilter');
 const messageList = document.getElementById('messageList');
 const loadingState = document.getElementById('loadingState');
 const emptyState = document.getElementById('emptyState');
@@ -25,7 +22,15 @@ const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
 const statsBtn = document.getElementById('statsBtn');
 const settingsBtn = document.getElementById('settingsBtn');
-const exportBtn = document.getElementById('exportBtn');
+
+// Dashboard elements
+const totalMarksCount = document.getElementById('totalMarksCount');
+const activeRemindersCount = document.getElementById('activeRemindersCount');
+const labelCheckboxes = document.querySelectorAll('.label-checkbox');
+const dateRadios = document.querySelectorAll('input[name="dateFilter"]');
+const platformTabs = document.querySelectorAll('.platform-tab');
+const exportBtnSidebar = document.getElementById('exportBtnSidebar');
+const clearAllBtnSidebar = document.getElementById('clearAllBtnSidebar');
 
 // Modals
 const settingsModal = document.getElementById('settingsModal');
@@ -97,20 +102,30 @@ function applyFilters() {
     });
   }
 
-  // Apply platform filter
-  const platform = platformFilter.value;
+  // Apply platform filter (from active tab)
+  const activeTab = document.querySelector('.platform-tab.active');
+  const platform = activeTab ? activeTab.dataset.platform : 'all';
   if (platform !== 'all') {
     filtered = filtered.filter(m => m.platform === platform);
   }
 
-  // Apply label filter
-  const label = labelFilter.value;
-  if (label !== 'all') {
-    filtered = filtered.filter(m => m.labels && m.labels.includes(label));
+  // Apply label filter (multi-select checkboxes)
+  const selectedLabels = Array.from(labelCheckboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+
+  if (selectedLabels.length > 0 && selectedLabels.length < 5) {
+    // If not all labels selected, filter by selected ones
+    filtered = filtered.filter(m => {
+      if (!m.labels || m.labels.length === 0) return false;
+      return m.labels.some(label => selectedLabels.includes(label));
+    });
   }
 
-  // Apply date filter
-  const dateRange = dateFilter.value;
+  // Apply date filter (radio buttons)
+  const selectedDateRadio = document.querySelector('input[name="dateFilter"]:checked');
+  const dateRange = selectedDateRadio ? selectedDateRadio.value : 'all';
+
   if (dateRange !== 'all') {
     const now = Date.now();
     let minTime = 0;
@@ -134,6 +149,36 @@ function applyFilters() {
 
   filteredMarkers = filtered;
   displayMarkers();
+  updateTabCounts();
+  updateStatsBox();
+}
+
+/**
+ * Update stats box in sidebar
+ */
+function updateStatsBox() {
+  if (totalMarksCount) {
+    totalMarksCount.textContent = allMarkers.length;
+  }
+
+  if (activeRemindersCount) {
+    const activeCount = Object.values(allReminders).filter(r => r.active && !r.firedAt).length;
+    activeRemindersCount.textContent = activeCount;
+  }
+}
+
+/**
+ * Update tab counts
+ */
+function updateTabCounts() {
+  const allCount = allMarkers.length;
+  const whatsappCount = allMarkers.filter(m => m.platform === 'whatsapp').length;
+
+  const tabCountAll = document.getElementById('tabCountAll');
+  const tabCountWhatsapp = document.getElementById('tabCountWhatsapp');
+
+  if (tabCountAll) tabCountAll.textContent = allCount;
+  if (tabCountWhatsapp) tabCountWhatsapp.textContent = whatsappCount;
 }
 
 /**
@@ -331,10 +376,36 @@ function setupEventListeners() {
     applyFilters();
   });
 
-  // Filters
-  platformFilter.addEventListener('change', applyFilters);
-  labelFilter.addEventListener('change', applyFilters);
-  dateFilter.addEventListener('change', applyFilters);
+  // Label checkboxes
+  labelCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', applyFilters);
+  });
+
+  // Date radio buttons
+  dateRadios.forEach(radio => {
+    radio.addEventListener('change', applyFilters);
+  });
+
+  // Platform tabs
+  platformTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Remove active class from all tabs
+      platformTabs.forEach(t => t.classList.remove('active'));
+      // Add active class to clicked tab
+      tab.classList.add('active');
+      // Apply filters
+      applyFilters();
+    });
+  });
+
+  // Sidebar action buttons
+  if (exportBtnSidebar) {
+    exportBtnSidebar.addEventListener('click', showExportModal);
+  }
+
+  if (clearAllBtnSidebar) {
+    clearAllBtnSidebar.addEventListener('click', clearAllData);
+  }
 
   // Theme toggle
   themeToggle.addEventListener('click', toggleTheme);
@@ -363,9 +434,6 @@ function setupEventListeners() {
 
   // Tutorial button
   document.getElementById('tutorialBtn')?.addEventListener('click', showTutorial);
-
-  // Export button in footer
-  exportBtn.addEventListener('click', showExportModal);
 
   // Close modals on backdrop click
   settingsModal?.addEventListener('click', (e) => {

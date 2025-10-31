@@ -30,47 +30,109 @@
     </div>
   </header>
 
-  <!-- Search Bar -->
-  <div class="search-container">
-    <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input
-        type="text"
-        id="searchInput"
-        class="search-input"
-        placeholder="Search messages..."
-        autocomplete="off"
-      >
-      <button class="clear-search" id="clearSearch" style="display: none;">✕</button>
-    </div>
-  </div>
+  <!-- Dashboard Layout -->
+  <div class="dashboard-container">
+    <!-- Sidebar Filters -->
+    <aside class="dashboard-sidebar">
+      <!-- Stats Box -->
+      <div class="sidebar-stats">
+        <div class="stat-item">
+          <div class="stat-number" id="totalMarksCount">0</div>
+          <div class="stat-label">Marks</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="activeRemindersCount">0</div>
+          <div class="stat-label">Reminders</div>
+        </div>
+      </div>
 
-  <!-- Filters -->
-  <div class="filters-container">
-    <select id="platformFilter" class="filter-select">
-      <option value="all">All Platforms</option>
-      <option value="whatsapp">WhatsApp</option>
-    </select>
+      <!-- Labels Filter -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">Labels</h3>
+        <div class="filter-group">
+          <label class="checkbox-label">
+            <input type="checkbox" class="label-checkbox" value="urgent" checked>
+            <span class="label-badge urgent">Urgent</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" class="label-checkbox" value="important" checked>
+            <span class="label-badge important">Important</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" class="label-checkbox" value="completed" checked>
+            <span class="label-badge completed">Completed</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" class="label-checkbox" value="followup" checked>
+            <span class="label-badge followup">Follow-up</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" class="label-checkbox" value="question" checked>
+            <span class="label-badge question">Question</span>
+          </label>
+        </div>
+      </div>
 
-    <select id="labelFilter" class="filter-select">
-      <option value="all">All Labels</option>
-      <option value="urgent">Urgent</option>
-      <option value="important">Important</option>
-      <option value="completed">Completed</option>
-      <option value="followup">Follow-up</option>
-      <option value="question">Question</option>
-    </select>
+      <!-- Date Filter -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">Date</h3>
+        <div class="filter-group">
+          <label class="radio-label">
+            <input type="radio" name="dateFilter" value="all" checked>
+            <span>All Time</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="dateFilter" value="today">
+            <span>Today</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="dateFilter" value="week">
+            <span>This Week</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="dateFilter" value="month">
+            <span>This Month</span>
+          </label>
+        </div>
+      </div>
 
-    <select id="dateFilter" class="filter-select">
-      <option value="all">All Time</option>
-      <option value="today">Today</option>
-      <option value="week">Last 7 Days</option>
-      <option value="month">Last 30 Days</option>
-    </select>
-  </div>
+      <!-- Actions -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">Actions</h3>
+        <button class="sidebar-action-btn" id="exportBtnSidebar">📤 Export</button>
+        <button class="sidebar-action-btn" id="clearAllBtnSidebar">🗑️ Clear All</button>
+      </div>
+    </aside>
 
-  <!-- Message List -->
-  <div class="messages-container" id="messagesContainer">
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+      <!-- Search Bar -->
+      <div class="search-container-dashboard">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search messages..."
+            autocomplete="off"
+          >
+          <button class="clear-search" id="clearSearch" style="display: none;">✕</button>
+        </div>
+      </div>
+
+      <!-- Platform Tabs -->
+      <div class="platform-tabs">
+        <button class="platform-tab active" data-platform="all">
+          All <span class="tab-count" id="tabCountAll">0</span>
+        </button>
+        <button class="platform-tab" data-platform="whatsapp">
+          WhatsApp <span class="tab-count" id="tabCountWhatsapp">0</span>
+        </button>
+      </div>
+
+      <!-- Message List -->
+      <div class="messages-container" id="messagesContainer">
     <!-- Loading State -->
     <div class="loading-state" id="loadingState">
       <div class="spinner"></div>
@@ -99,17 +161,18 @@
       </p>
     </div>
 
-    <!-- Message Cards will be inserted here -->
-    <div class="message-list" id="messageList"></div>
-  </div>
+        <!-- Message Cards will be inserted here -->
+        <div class="message-list" id="messageList"></div>
+      </div>
 
-  <!-- Footer -->
-  <footer class="footer" id="footer">
-    <div class="footer-text" id="footerText">
-      <span id="resultCount">Showing 0 marked messages</span>
-    </div>
-    <button class="footer-link" id="exportBtn">Export Data</button>
-  </footer>
+      <!-- Footer -->
+      <footer class="footer" id="footer">
+        <div class="footer-text" id="footerText">
+          <span id="resultCount">Showing 0 marked messages</span>
+        </div>
+      </footer>
+    </main>
+  </div>
 
   <!-- Modals -->
 
