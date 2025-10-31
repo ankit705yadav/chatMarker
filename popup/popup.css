@@ -816,6 +816,53 @@ body.dark-mode .reminder-preview-text {
   }
 }
 
+/* Statistics */
+.stats-section {
+  margin-bottom: var(--space-lg);
+}
+
+.stats-section:last-child {
+  margin-bottom: 0;
+}
+
+.stats-section h3 {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-base);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row span:first-child {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.stat-row span:last-child {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+}
+
+.stat-row .label-badge {
+  margin-right: var(--space-sm);
+}
+
 /* Utility Classes */
 .hidden {
   display: none !important;
