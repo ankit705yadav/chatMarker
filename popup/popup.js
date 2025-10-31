@@ -138,6 +138,7 @@ function applyFilters() {
  */
 function displayMarkers() {
   hideAllStates();
+  messageList.innerHTML = ''; // Clear message list first
 
   if (allMarkers.length === 0) {
     // No markers at all
@@ -154,7 +155,6 @@ function displayMarkers() {
   }
 
   // Display filtered markers
-  messageList.innerHTML = '';
 
   filteredMarkers.forEach(marker => {
     const card = createMessageCard(marker);
@@ -316,6 +316,9 @@ function setupEventListeners() {
   document.getElementById('cancelNote')?.addEventListener('click', closeNoteModal);
   document.getElementById('saveNote')?.addEventListener('click', saveNote);
   document.getElementById('noteTextarea')?.addEventListener('input', updateCharCounter);
+
+  // Tutorial button
+  document.getElementById('tutorialBtn')?.addEventListener('click', showTutorial);
 
   // Export button in footer
   exportBtn.addEventListener('click', exportData);
@@ -725,4 +728,34 @@ function formatReminderTime(timestamp) {
     minute: '2-digit'
   });
   return `${dateStr} at ${timeStr}`;
+}
+
+/**
+ * Show tutorial/shortcuts help
+ */
+function showTutorial() {
+  const helpText = `⌨️ KEYBOARD SHORTCUTS
+
+On WhatsApp Web, hover over any message and press:
+
+M - Mark/Unmark message
+N - Add/Edit note (marked messages)
+R - Set reminder (marked messages)
+1 - Toggle Urgent label
+2 - Toggle Important label
+3 - Toggle Completed label
+4 - Toggle Follow-up label
+5 - Toggle Question label
+Del - Delete mark
+? - Show shortcuts help
+
+✨ OTHER FEATURES
+
+• Right-click star icon for labels menu
+• Click extension icon to view all marks
+• Use filters to organize marks
+• Dark mode toggle (sun/moon icon)
+• Export your data anytime`;
+
+  alert(helpText);
 }
