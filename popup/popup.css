@@ -456,6 +456,38 @@ body {
   word-break: break-word;
 }
 
+/* Reminder Preview */
+.message-reminder-preview {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background-color: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+}
+
+body.dark-mode .message-reminder-preview {
+  background-color: #451a03;
+  border-left-color: #d97706;
+}
+
+.reminder-preview-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.reminder-preview-text {
+  font-size: var(--font-size-sm);
+  color: #d97706;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+body.dark-mode .reminder-preview-text {
+  color: #fbbf24;
+}
+
 .message-footer {
   display: flex;
   align-items: center;

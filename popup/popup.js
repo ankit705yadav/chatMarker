@@ -5,6 +5,7 @@
 
 // State
 let allMarkers = [];
+let allReminders = {};
 let filteredMarkers = [];
 let currentEditingNoteId = null;
 let currentSettings = {};
@@ -60,6 +61,10 @@ async function loadMarkers() {
     // Get all markers
     allMarkers = await getMarkersArray();
     console.log(`[ChatMarker Popup] Loaded ${allMarkers.length} markers`);
+
+    // Get all reminders
+    allReminders = await getAllReminders();
+    console.log(`[ChatMarker Popup] Loaded ${Object.keys(allReminders).length} reminders`);
 
     // Apply current filters
     applyFilters();
@@ -183,15 +188,30 @@ function createMessageCard(marker) {
     ? marker.labels.map(label => `<span class="label-badge ${label}">${capitalizeFirst(label)}</span>`).join('')
     : '';
 
+  // Find active reminder for this message
+  const messageReminder = Object.values(allReminders).find(
+    r => r.messageId === marker.messageId && r.active && !r.firedAt
+  );
+
   // Icons
   const noteIcon = marker.notes ? '<span class="message-icon" title="Has note">📝</span>' : '';
-  const reminderIcon = ''; // Will be implemented with reminder feature
+  const reminderIcon = messageReminder ? '<span class="message-icon" title="Has reminder">⏰</span>' : '';
 
   // Note preview HTML
   const notePreviewHTML = marker.notes && marker.notes.trim()
     ? `<div class="message-note-preview">
          <div class="note-preview-icon">📝</div>
          <div class="note-preview-text">${escapeHtml(marker.notes)}</div>
+       </div>`
+    : '';
+
+  // Reminder preview HTML
+  const reminderPreviewHTML = messageReminder
+    ? `<div class="message-reminder-preview">
+         <div class="reminder-preview-icon">⏰</div>
+         <div class="reminder-preview-text">
+           Reminder: ${formatReminderTime(messageReminder.reminderTime)}
+         </div>
        </div>`
     : '';
 
@@ -213,6 +233,7 @@ function createMessageCard(marker) {
     </div>
     <div class="message-text">${escapeHtml(marker.messageText || 'No message text')}</div>
     ${notePreviewHTML}
+    ${reminderPreviewHTML}
     <div class="message-footer">
       ${labelsHTML}
       <div class="message-icons">
@@ -661,4 +682,47 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Format reminder time
+ */
+function formatReminderTime(timestamp) {
+  const now = Date.now();
+  const reminderDate = new Date(timestamp);
+  const diff = timestamp - now;
+
+  // If reminder is in the past
+  if (diff < 0) {
+    return 'Overdue';
+  }
+
+  // If less than 1 hour away
+  if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000));
+    return `in ${minutes} min${minutes !== 1 ? 's' : ''}`;
+  }
+
+  // If less than 24 hours away
+  if (diff < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(diff / (60 * 60 * 1000));
+    return `in ${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+
+  // If less than 7 days away
+  if (diff < 7 * 24 * 60 * 60 * 1000) {
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    return `in ${days} day${days !== 1 ? 's' : ''}`;
+  }
+
+  // Otherwise show the date and time
+  const dateStr = reminderDate.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric'
+  });
+  const timeStr = reminderDate.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+  return `${dateStr} at ${timeStr}`;
 }
