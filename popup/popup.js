@@ -178,9 +178,17 @@ function createMessageCard(marker) {
 
   // Platform icon
   const platformIcon = getPlatformIcon(marker.platform);
+  const platformName = capitalizeFirst(marker.platform);
 
   // Time ago
   const timeAgo = getTimeAgo(marker.createdAt);
+
+  // Chat name and sender
+  const chatName = marker.chatName || marker.sender || 'Unknown';
+  const senderName = marker.sender || 'Unknown';
+
+  // Generate profile initials (first letter of chat name)
+  const profileInitials = chatName.charAt(0).toUpperCase();
 
   // Labels HTML
   const labelsHTML = marker.labels && marker.labels.length > 0
@@ -217,8 +225,20 @@ function createMessageCard(marker) {
   card.innerHTML = `
     <div class="message-header">
       <div class="message-meta">
-        <span class="platform-icon" title="${capitalizeFirst(marker.platform)}">${platformIcon}</span>
-        <span class="sender-name">${capitalizeFirst(marker.platform)} • ${escapeHtml(marker.sender || 'Unknown')} • ${timeAgo}</span>
+        <div class="profile-avatar">
+          <span class="avatar-initials">${profileInitials}</span>
+          <span class="platform-badge" title="${platformName}">${platformIcon}</span>
+        </div>
+        <div class="message-info">
+          <div class="chat-name">${escapeHtml(chatName)}</div>
+          <div class="message-details">
+            <span class="platform-name">${platformName}</span>
+            <span class="detail-separator">•</span>
+            <span class="sender-name-small">${escapeHtml(senderName)}</span>
+            <span class="detail-separator">•</span>
+            <span class="time-ago">${timeAgo}</span>
+          </div>
+        </div>
       </div>
       <div class="message-actions">
         <button class="message-action-btn copy-btn" title="Copy Message Text" data-id="${marker.messageId}">
