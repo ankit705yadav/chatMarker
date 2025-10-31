@@ -104,24 +104,35 @@ async function handleReminder(reminderId) {
 
     console.log('[ChatMarker] Creating notification...');
 
-    // Create notification
+    // Create notification using Service Worker Notifications API
+    const notificationTitle = 'ChatMarker Reminder ⏰';
+    const notificationBody = reminder.notificationText || (marker && marker.messageText) || 'You have a reminder';
+    const contextInfo = marker ? `${marker.sender} (${capitalizeFirst(marker.platform)})` : `${reminder.sender} (${capitalizeFirst(reminder.platform)})`;
+
     const notificationOptions = {
-      type: 'basic',
-      iconUrl: 'icons/icon48.png',
-      title: 'ChatMarker Reminder ⏰',
-      message: reminder.notificationText || (marker && marker.messageText) || 'You have a reminder',
-      contextMessage: marker ? `${marker.sender} (${capitalizeFirst(marker.platform)})` : `${reminder.sender} (${capitalizeFirst(reminder.platform)})`,
-      priority: 2,
+      body: `${notificationBody}\n\n${contextInfo}`,
+      icon: chrome.runtime.getURL('icons/icon48.png'),
+      badge: chrome.runtime.getURL('icons/icon48.png'),
+      tag: reminderId,
       requireInteraction: true,
-      buttons: [
-        { title: 'View Message' },
-        { title: 'Snooze 1h' }
+      data: {
+        reminderId: reminderId,
+        messageId: reminder.messageId
+      },
+      actions: [
+        { action: 'view', title: 'View Message' },
+        { action: 'snooze', title: 'Snooze 1h' }
       ]
     };
 
-    chrome.notifications.create(reminderId, notificationOptions, (notifId) => {
-      console.log('[ChatMarker] ✅ Notification created:', notifId);
-    });
+    // Use Service Worker registration to show notification
+    self.registration.showNotification(notificationTitle, notificationOptions)
+      .then(() => {
+        console.log('[ChatMarker] ✅ Notification created successfully');
+      })
+      .catch((error) => {
+        console.error('[ChatMarker] ❌ Notification failed:', error);
+      });
 
     // Update badge to show pending reminders
     await updateBadge();
@@ -136,36 +147,34 @@ async function handleReminder(reminderId) {
 }
 
 /**
- * Handle notification button clicks
+ * Handle notification action button clicks (Service Worker API)
  */
-chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
-  if (!notificationId.startsWith('reminder_')) return;
+self.addEventListener('notificationclick', async (event) => {
+  console.log('[ChatMarker] Notification clicked:', event.action, event.notification.tag);
 
-  const reminder = await getReminder(notificationId);
-  if (!reminder) return;
+  event.notification.close();
 
-  if (buttonIndex === 0) {
-    // View Message button
-    await navigateToMessage(reminder.messageId);
-  } else if (buttonIndex === 1) {
-    // Snooze 1 hour button
-    await snoozeReminder(notificationId, 60); // 60 minutes
+  const reminderId = event.notification.tag;
+  if (!reminderId || !reminderId.startsWith('reminder_')) return;
+
+  const reminder = await getReminder(reminderId);
+  if (!reminder) {
+    console.log('[ChatMarker] Reminder not found:', reminderId);
+    return;
   }
 
-  // Clear the notification
-  chrome.notifications.clear(notificationId);
-});
-
-/**
- * Handle notification click (body click)
- */
-chrome.notifications.onClicked.addListener(async (notificationId) => {
-  if (notificationId.startsWith('reminder_')) {
-    const reminder = await getReminder(notificationId);
-    if (reminder) {
-      await navigateToMessage(reminder.messageId);
-    }
-    chrome.notifications.clear(notificationId);
+  if (event.action === 'view') {
+    // View Message action
+    console.log('[ChatMarker] View message action clicked');
+    await navigateToMessage(reminder.messageId);
+  } else if (event.action === 'snooze') {
+    // Snooze 1 hour action
+    console.log('[ChatMarker] Snooze action clicked');
+    await snoozeReminder(reminderId, 60); // 60 minutes
+  } else {
+    // Body click (no specific action)
+    console.log('[ChatMarker] Notification body clicked');
+    await navigateToMessage(reminder.messageId);
   }
 });
 
