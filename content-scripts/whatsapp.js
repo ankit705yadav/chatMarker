@@ -914,17 +914,22 @@ function showReminderModal(messageElement, messageId) {
         data: {
           messageId: messageId,
           reminderTime: reminderTime,
-          markerData: marker
+          notificationText: marker.messageText,
+          active: true,
+          createdAt: Date.now(),
+          platform: marker.platform,
+          chatId: marker.chatId,
+          sender: marker.sender
         }
       },
       (response) => {
         if (response && response.success) {
           modal.remove();
           console.log('[ChatMarker] Reminder created:', response.reminder);
-          // Could show a success message here
+          alert('✅ Reminder set successfully!');
         } else {
           console.error('[ChatMarker] Failed to create reminder:', response?.error);
-          alert('Failed to set reminder');
+          alert('Failed to set reminder: ' + (response?.error || 'Unknown error'));
         }
       }
     );

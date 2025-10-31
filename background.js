@@ -69,9 +69,10 @@ async function initializeExtension() {
  * Handle alarm events (reminders and cleanup)
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  console.log('[ChatMarker] Alarm triggered:', alarm.name);
+  console.log('[ChatMarker] ⏰ ALARM TRIGGERED:', alarm.name, 'at', new Date());
 
   if (alarm.name.startsWith('reminder_')) {
+    console.log('[ChatMarker] Handling reminder alarm...');
     await handleReminder(alarm.name);
   } else if (alarm.name === 'daily_cleanup') {
     await performDailyCleanup();
@@ -83,6 +84,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  */
 async function handleReminder(reminderId) {
   try {
+    console.log('[ChatMarker] Fetching reminder:', reminderId);
     const reminder = await getReminder(reminderId);
 
     if (!reminder || !reminder.active) {
@@ -90,21 +92,25 @@ async function handleReminder(reminderId) {
       return;
     }
 
+    console.log('[ChatMarker] Reminder found:', reminder);
+
     // Get associated marker
     const marker = await getMarker(reminder.messageId);
 
     if (!marker) {
       console.log('[ChatMarker] Marker not found for reminder:', reminderId);
-      return;
+      console.log('[ChatMarker] Will show notification anyway with reminder data');
     }
+
+    console.log('[ChatMarker] Creating notification...');
 
     // Create notification
     const notificationOptions = {
       type: 'basic',
       iconUrl: 'icons/icon48.png',
-      title: 'ChatMarker Reminder',
-      message: reminder.notificationText || marker.messageText || 'You have a reminder',
-      contextMessage: `${marker.sender} (${capitalizeFirst(marker.platform)})`,
+      title: 'ChatMarker Reminder ⏰',
+      message: reminder.notificationText || (marker && marker.messageText) || 'You have a reminder',
+      contextMessage: marker ? `${marker.sender} (${capitalizeFirst(marker.platform)})` : `${reminder.sender} (${capitalizeFirst(reminder.platform)})`,
       priority: 2,
       requireInteraction: true,
       buttons: [
@@ -113,7 +119,9 @@ async function handleReminder(reminderId) {
       ]
     };
 
-    chrome.notifications.create(reminderId, notificationOptions);
+    chrome.notifications.create(reminderId, notificationOptions, (notifId) => {
+      console.log('[ChatMarker] ✅ Notification created:', notifId);
+    });
 
     // Update badge to show pending reminders
     await updateBadge();
@@ -123,7 +131,7 @@ async function handleReminder(reminderId) {
     await saveReminder(reminder);
 
   } catch (error) {
-    console.error('[ChatMarker] Error handling reminder:', error);
+    console.error('[ChatMarker] ❌ Error handling reminder:', error);
   }
 }
 
@@ -314,12 +322,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
 
         case 'createReminder':
+          console.log('[ChatMarker] Creating reminder with data:', request.data);
           const reminder = await saveReminder(request.data);
+          console.log('[ChatMarker] Reminder saved:', reminder.reminderId);
 
           // Create Chrome alarm
           chrome.alarms.create(reminder.reminderId, {
             when: reminder.reminderTime
           });
+          console.log('[ChatMarker] Chrome alarm created for:', new Date(reminder.reminderTime));
 
           await updateBadge();
           sendResponse({ success: true, reminder });
