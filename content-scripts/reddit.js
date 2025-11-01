@@ -75,6 +75,48 @@ function safeSendMessage(message, callback) {
 }
 
 /**
+ * Detect if Reddit is in dark mode
+ */
+function isDarkMode() {
+  // Reddit uses body class for theme
+  if (document.body.classList.contains('theme-dark')) return true;
+
+  // Also check data-theme attribute
+  const bodyTheme = document.body.getAttribute('data-theme');
+  if (bodyTheme === 'dark') return true;
+
+  // Fallback: check body background color
+  const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+  const rgb = bodyBg.match(/\d+/g);
+  if (rgb) {
+    const brightness = (parseInt(rgb[0]) + parseInt(rgb[1]) + parseInt(rgb[2])) / 3;
+    return brightness < 128;
+  }
+
+  return false;
+}
+
+/**
+ * Get theme colors based on dark mode
+ */
+function getThemeColors() {
+  const isDark = isDarkMode();
+  return {
+    modalBg: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#F3F4F6' : '#111827',
+    textSecondary: isDark ? '#9CA3AF' : '#6B7280',
+    border: isDark ? '#374151' : '#D1D5DB',
+    infoBg: isDark ? '#374151' : '#F3F4F6',
+    infoText: isDark ? '#D1D5DB' : '#374151',
+    inputBg: isDark ? '#111827' : '#FFFFFF',
+    inputBorder: isDark ? '#4B5563' : '#D1D5DB',
+    buttonSecondaryBg: isDark ? '#374151' : '#FFFFFF',
+    buttonSecondaryText: isDark ? '#F3F4F6' : '#374151',
+    buttonSecondaryBorder: isDark ? '#4B5563' : '#D1D5DB',
+  };
+}
+
+/**
  * Initialize the content script
  */
 async function init() {
@@ -689,6 +731,9 @@ function showInlineNoteModal(chatMarker) {
   const existingModal = document.querySelector('.chatmarker-inline-modal');
   if (existingModal) existingModal.remove();
 
+  // Get theme colors
+  const theme = getThemeColors();
+
   // Create modal overlay
   const overlay = document.createElement('div');
   overlay.className = 'chatmarker-inline-modal';
@@ -709,32 +754,32 @@ function showInlineNoteModal(chatMarker) {
   // Create modal content
   const modal = document.createElement('div');
   modal.style.cssText = `
-    background: white;
+    background: ${theme.modalBg};
     border-radius: 12px;
     padding: 24px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
   `;
 
   modal.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827;">Add Note to Chat</h2>
-      <button class="chatmarker-close-btn" style="background: none; border: none; font-size: 24px; color: #6B7280; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">×</button>
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: ${theme.textPrimary};">Add Note to Chat</h2>
+      <button class="chatmarker-close-btn" style="background: none; border: none; font-size: 24px; color: ${theme.textSecondary}; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">×</button>
     </div>
     <div style="margin-bottom: 16px;">
-      <div style="padding: 12px; background: #F3F4F6; border-radius: 6px; margin-bottom: 16px;">
-        <strong style="color: #374151;">Chat:</strong>
-        <div style="color: #6B7280; margin-top: 4px;">${chatMarker.chatName}</div>
+      <div style="padding: 12px; background: ${theme.infoBg}; border-radius: 6px; margin-bottom: 16px;">
+        <strong style="color: ${theme.infoText};">Chat:</strong>
+        <div style="color: ${theme.textSecondary}; margin-top: 4px;">${chatMarker.chatName}</div>
       </div>
-      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Your Note:</label>
-      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." style="width: 100%; min-height: 120px; padding: 12px; border: 1px solid #D1D5DB; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical;">${chatMarker.notes || ''}</textarea>
-      <div style="text-align: right; margin-top: 4px; font-size: 12px; color: #6B7280;">
+      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Your Note:</label>
+      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." style="width: 100%; min-height: 120px; padding: 12px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; background: ${theme.inputBg}; color: ${theme.textPrimary};">${chatMarker.notes || ''}</textarea>
+      <div style="text-align: right; margin-top: 4px; font-size: 12px; color: ${theme.textSecondary};">
         <span class="chatmarker-char-count">0</span> / 500
       </div>
     </div>
     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid #D1D5DB; background: white; color: #374151; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
+      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
       <button class="chatmarker-save-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Save Note</button>
     </div>
   `;
@@ -797,6 +842,9 @@ function showInlineReminderModal(chatMarker) {
   const existingModal = document.querySelector('.chatmarker-inline-modal');
   if (existingModal) existingModal.remove();
 
+  // Get theme colors
+  const theme = getThemeColors();
+
   // Create modal overlay
   const overlay = document.createElement('div');
   overlay.className = 'chatmarker-inline-modal';
@@ -817,12 +865,12 @@ function showInlineReminderModal(chatMarker) {
   // Create modal content
   const modal = document.createElement('div');
   modal.style.cssText = `
-    background: white;
+    background: ${theme.modalBg};
     border-radius: 12px;
     padding: 24px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
   `;
 
   // Get min datetime (now)
@@ -836,26 +884,26 @@ function showInlineReminderModal(chatMarker) {
 
   modal.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827;">Set Reminder for Chat</h2>
-      <button class="chatmarker-close-btn" style="background: none; border: none; font-size: 24px; color: #6B7280; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">×</button>
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: ${theme.textPrimary};">Set Reminder for Chat</h2>
+      <button class="chatmarker-close-btn" style="background: none; border: none; font-size: 24px; color: ${theme.textSecondary}; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">×</button>
     </div>
     <div style="margin-bottom: 16px;">
-      <div style="padding: 12px; background: #F3F4F6; border-radius: 6px; margin-bottom: 16px;">
-        <strong style="color: #374151;">Chat:</strong>
-        <div style="color: #6B7280; margin-top: 4px;">${chatMarker.chatName}</div>
+      <div style="padding: 12px; background: ${theme.infoBg}; border-radius: 6px; margin-bottom: 16px;">
+        <strong style="color: ${theme.infoText};">Chat:</strong>
+        <div style="color: ${theme.textSecondary}; margin-top: 4px;">${chatMarker.chatName}</div>
       </div>
-      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Quick Options:</label>
+      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Quick Options:</label>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-        <button class="chatmarker-quick-reminder" data-minutes="60" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ 1 Hour</button>
-        <button class="chatmarker-quick-reminder" data-minutes="180" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ 3 Hours</button>
-        <button class="chatmarker-quick-reminder" data-minutes="1440" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ Tomorrow</button>
-        <button class="chatmarker-quick-reminder" data-minutes="10080" style="padding: 10px; border: 1px solid #D1D5DB; background: white; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ Next Week</button>
+        <button class="chatmarker-quick-reminder" data-minutes="60" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ 1 Hour</button>
+        <button class="chatmarker-quick-reminder" data-minutes="180" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ 3 Hours</button>
+        <button class="chatmarker-quick-reminder" data-minutes="1440" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ Tomorrow</button>
+        <button class="chatmarker-quick-reminder" data-minutes="10080" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px;">⏰ Next Week</button>
       </div>
-      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Or choose custom date & time:</label>
-      <input type="datetime-local" class="chatmarker-custom-datetime" min="${minDateTime}" style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-family: inherit; font-size: 14px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Or choose custom date & time:</label>
+      <input type="datetime-local" class="chatmarker-custom-datetime" min="${minDateTime}" style="width: 100%; padding: 10px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; background: ${theme.inputBg}; color: ${theme.textPrimary};">
     </div>
     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid #D1D5DB; background: white; color: #374151; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
+      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
       <button class="chatmarker-save-reminder-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Set Reminder</button>
     </div>
   `;
