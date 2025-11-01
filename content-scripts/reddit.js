@@ -773,14 +773,14 @@ function showInlineNoteModal(chatMarker) {
         <div style="color: ${theme.textSecondary}; margin-top: 4px;">${chatMarker.chatName}</div>
       </div>
       <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Your Note:</label>
-      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." style="width: 100%; box-sizing: border-box; min-height: 120px; padding: 12px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; background: ${theme.inputBg}; color: ${theme.textPrimary};">${chatMarker.notes || ''}</textarea>
+      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." maxlength="500" style="width: 100%; box-sizing: border-box; min-height: 120px; padding: 12px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; background: ${theme.inputBg}; color: ${theme.textPrimary}; transition: border-color 0.2s, box-shadow 0.2s;">${chatMarker.notes || ''}</textarea>
       <div style="text-align: right; margin-top: 4px; font-size: 12px; color: ${theme.textSecondary};">
         <span class="chatmarker-char-count">0</span> / 500
       </div>
     </div>
     <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
-      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
-      <button class="chatmarker-save-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Save Note</button>
+      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Cancel</button>
+      <button class="chatmarker-save-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Save Note</button>
     </div>
   `;
 
@@ -800,6 +800,42 @@ function showInlineNoteModal(chatMarker) {
   };
   updateCharCount();
   textarea.addEventListener('input', updateCharCount);
+
+  // Add focus/blur effects for textarea
+  textarea.addEventListener('focus', () => {
+    textarea.style.borderColor = '#6366F1';
+    textarea.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+  });
+  textarea.addEventListener('blur', () => {
+    textarea.style.borderColor = theme.inputBorder;
+    textarea.style.boxShadow = 'none';
+  });
+
+  // Add hover effects for buttons
+  cancelBtn.addEventListener('mouseenter', () => {
+    cancelBtn.style.background = theme.inputBorder;
+  });
+  cancelBtn.addEventListener('mouseleave', () => {
+    cancelBtn.style.background = theme.buttonSecondaryBg;
+  });
+
+  saveBtn.addEventListener('mouseenter', () => {
+    saveBtn.style.background = '#4F46E5';
+    saveBtn.style.transform = 'translateY(-1px)';
+    saveBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+  });
+  saveBtn.addEventListener('mouseleave', () => {
+    saveBtn.style.background = '#6366F1';
+    saveBtn.style.transform = 'translateY(0)';
+    saveBtn.style.boxShadow = 'none';
+  });
+
+  closeBtn.addEventListener('mouseenter', () => {
+    closeBtn.style.background = theme.inputBorder;
+  });
+  closeBtn.addEventListener('mouseleave', () => {
+    closeBtn.style.background = 'none';
+  });
 
   // Close handlers
   const closeModal = () => overlay.remove();
@@ -894,17 +930,17 @@ function showInlineReminderModal(chatMarker) {
       </div>
       <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Quick Options:</label>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-        <button class="chatmarker-quick-reminder" data-minutes="60" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⏰ 1 Hour</button>
-        <button class="chatmarker-quick-reminder" data-minutes="180" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⏰ 3 Hours</button>
-        <button class="chatmarker-quick-reminder" data-minutes="1440" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⏰ Tomorrow</button>
-        <button class="chatmarker-quick-reminder" data-minutes="10080" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⏰ Next Week</button>
+        <button class="chatmarker-quick-reminder" data-minutes="60" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s;">⏰ 1 Hour</button>
+        <button class="chatmarker-quick-reminder" data-minutes="180" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s;">⏰ 3 Hours</button>
+        <button class="chatmarker-quick-reminder" data-minutes="1440" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s;">⏰ Tomorrow</button>
+        <button class="chatmarker-quick-reminder" data-minutes="10080" style="padding: 10px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s;">⏰ Next Week</button>
       </div>
       <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Or choose custom date & time:</label>
-      <input type="datetime-local" class="chatmarker-custom-datetime" min="${minDateTime}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; background: ${theme.inputBg}; color: ${theme.textPrimary};">
+      <input type="datetime-local" class="chatmarker-custom-datetime" min="${minDateTime}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; background: ${theme.inputBg}; color: ${theme.textPrimary}; transition: border-color 0.2s, box-shadow 0.2s;">
     </div>
     <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
-      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Cancel</button>
-      <button class="chatmarker-save-reminder-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Set Reminder</button>
+      <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Cancel</button>
+      <button class="chatmarker-save-reminder-btn" disabled style="padding: 10px 20px; border: none; background: #9CA3AF; color: white; border-radius: 6px; font-weight: 500; cursor: not-allowed; font-size: 14px; transition: all 0.2s;">Set Reminder</button>
     </div>
   `;
 
@@ -917,6 +953,80 @@ function showInlineReminderModal(chatMarker) {
   const closeBtn = modal.querySelector('.chatmarker-close-btn');
   const cancelBtn = modal.querySelector('.chatmarker-cancel-btn');
   const saveBtn = modal.querySelector('.chatmarker-save-reminder-btn');
+
+  // Function to enable save button
+  const enableSaveButton = () => {
+    saveBtn.disabled = false;
+    saveBtn.style.background = '#6366F1';
+    saveBtn.style.cursor = 'pointer';
+  };
+
+  // Add hover effects for quick reminder buttons
+  quickBtns.forEach(btn => {
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = '#6366F1';
+      btn.style.borderColor = '#6366F1';
+      btn.style.color = 'white';
+      btn.style.transform = 'translateY(-2px)';
+      btn.style.boxShadow = '0 4px 8px rgba(99, 102, 241, 0.2)';
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = theme.buttonSecondaryBg;
+      btn.style.borderColor = theme.buttonSecondaryBorder;
+      btn.style.color = theme.buttonSecondaryText;
+      btn.style.transform = 'translateY(0)';
+      btn.style.boxShadow = 'none';
+    });
+  });
+
+  // Add focus/blur effects for datetime input
+  customDateTime.addEventListener('focus', () => {
+    customDateTime.style.borderColor = '#6366F1';
+    customDateTime.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+  });
+  customDateTime.addEventListener('blur', () => {
+    customDateTime.style.borderColor = theme.inputBorder;
+    customDateTime.style.boxShadow = 'none';
+  });
+
+  // Enable save button when datetime is selected
+  customDateTime.addEventListener('change', () => {
+    if (customDateTime.value) {
+      enableSaveButton();
+    }
+  });
+
+  // Add hover effects for cancel button
+  cancelBtn.addEventListener('mouseenter', () => {
+    cancelBtn.style.background = theme.inputBorder;
+  });
+  cancelBtn.addEventListener('mouseleave', () => {
+    cancelBtn.style.background = theme.buttonSecondaryBg;
+  });
+
+  // Add hover effects for save button (when enabled)
+  saveBtn.addEventListener('mouseenter', () => {
+    if (!saveBtn.disabled) {
+      saveBtn.style.background = '#4F46E5';
+      saveBtn.style.transform = 'translateY(-1px)';
+      saveBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+    }
+  });
+  saveBtn.addEventListener('mouseleave', () => {
+    if (!saveBtn.disabled) {
+      saveBtn.style.background = '#6366F1';
+      saveBtn.style.transform = 'translateY(0)';
+      saveBtn.style.boxShadow = 'none';
+    }
+  });
+
+  // Add hover effect for close button
+  closeBtn.addEventListener('mouseenter', () => {
+    closeBtn.style.background = theme.inputBorder;
+  });
+  closeBtn.addEventListener('mouseleave', () => {
+    closeBtn.style.background = 'none';
+  });
 
   // Close handlers
   const closeModal = () => overlay.remove();
@@ -937,6 +1047,9 @@ function showInlineReminderModal(chatMarker) {
 
   // Save reminder handler
   saveBtn.addEventListener('click', () => {
+    if (saveBtn.disabled) {
+      return;
+    }
     if (!customDateTime.value) {
       showToast('⚠️ Please select a date and time');
       return;
