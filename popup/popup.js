@@ -9,7 +9,7 @@ let allReminders = {};
 let filteredChatMarkers = [];
 let currentEditingNoteId = null;
 let currentSettings = {};
-let currentPlatform = 'all'; // 'all' or 'whatsapp'
+let currentPlatform = 'all'; // 'all', 'whatsapp', 'reddit', etc.
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
@@ -204,12 +204,15 @@ function updateStatsBox() {
 function updateTabCounts() {
   const allCount = allChatMarkers.length;
   const whatsappCount = allChatMarkers.filter(c => c.platform === 'whatsapp').length;
+  const redditCount = allChatMarkers.filter(c => c.platform === 'reddit').length;
 
   const tabCountAll = document.getElementById('tabCountAll');
   const tabCountWhatsapp = document.getElementById('tabCountWhatsapp');
+  const tabCountReddit = document.getElementById('tabCountReddit');
 
   if (tabCountAll) tabCountAll.textContent = allCount;
   if (tabCountWhatsapp) tabCountWhatsapp.textContent = whatsappCount;
+  if (tabCountReddit) tabCountReddit.textContent = redditCount;
 }
 
 /**
@@ -226,7 +229,7 @@ function displayChatMarkers() {
     const emptyTitle = document.querySelector('#emptyState .empty-title');
     const emptyText = document.querySelector('#emptyState .empty-text');
     if (emptyTitle) emptyTitle.textContent = 'No marked chats yet';
-    if (emptyText) emptyText.innerHTML = 'Right-click anywhere on a chat in WhatsApp<br>and select "Mark This Chat"';
+    if (emptyText) emptyText.innerHTML = 'Right-click anywhere on a chat in WhatsApp or Reddit<br>and select "Mark This Chat"';
     resultCount.textContent = 'No marked chats';
     return;
   }
@@ -1662,7 +1665,8 @@ function getPlatformIcon(platform) {
     whatsapp: '🟢',
     messenger: '🔵',
     instagram: '📷',
-    linkedin: '💼'
+    linkedin: '💼',
+    reddit: '🔴'
   };
   return icons[platform] || '💬';
 }

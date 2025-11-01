@@ -207,6 +207,9 @@ async function navigateToMessage(messageId) {
       case 'linkedin':
         url = 'https://www.linkedin.com/messaging/';
         break;
+      case 'reddit':
+        url = 'https://www.reddit.com/chat';
+        break;
     }
 
     if (!url) return;
@@ -463,7 +466,9 @@ function createContextMenus() {
         'https://www.messenger.com/*',
         'https://www.facebook.com/messages/*',
         'https://www.instagram.com/*',
-        'https://www.linkedin.com/*'
+        'https://www.linkedin.com/*',
+        'https://www.reddit.com/*',
+        'https://old.reddit.com/*'
       ]
     });
 

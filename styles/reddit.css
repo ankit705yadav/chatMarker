@@ -1,0 +1,234 @@
+/**
+ * ChatMarker - Reddit Specific Styles
+ * Styles for modals and notifications on Reddit
+ */
+
+/* Toast animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+}
+
+/* Ensure modals appear above Reddit's UI */
+.chatmarker-inline-modal {
+  z-index: 999999 !important;
+}
+
+/* Reddit dark theme compatibility */
+body[class*="theme-dark"] .chatmarker-inline-modal > div {
+  background: #1a1a1b !important;
+  color: #d7dadc !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal h2 {
+  color: #d7dadc !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal label {
+  color: #818384 !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal textarea,
+body[class*="theme-dark"] .chatmarker-inline-modal input {
+  background: #272729 !important;
+  color: #d7dadc !important;
+  border-color: #343536 !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal .chatmarker-cancel-btn {
+  background: #272729 !important;
+  color: #d7dadc !important;
+  border-color: #343536 !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal .chatmarker-cancel-btn:hover {
+  background: #343536 !important;
+}
+
+/* Reddit's color scheme integration */
+.chatmarker-save-btn {
+  background: #ff4500 !important; /* Reddit orange */
+}
+
+.chatmarker-save-btn:hover {
+  background: #ff5414 !important;
+}
+
+/* Info boxes in modals */
+body[class*="theme-dark"] .chatmarker-inline-modal > div > div > div[style*="background: #F3F4F6"] {
+  background: #272729 !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal strong {
+  color: #d7dadc !important;
+}
+
+body[class*="theme-dark"] .chatmarker-inline-modal .chatmarker-char-count {
+  color: #818384 !important;
+}
+
+/* Close button hover */
+.chatmarker-close-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+body[class*="theme-dark"] .chatmarker-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Quick reminder buttons for Reddit */
+.chatmarker-quick-reminder:hover {
+  border-color: #ff4500 !important;
+  background: rgba(255, 69, 0, 0.1) !important;
+  color: #ff4500 !important;
+}
+
+body[class*="theme-dark"] .chatmarker-quick-reminder {
+  background: #272729 !important;
+  border-color: #343536 !important;
+  color: #d7dadc !important;
+}
+
+body[class*="theme-dark"] .chatmarker-quick-reminder:hover {
+  border-color: #ff4500 !important;
+  background: rgba(255, 69, 0, 0.15) !important;
+  color: #ff4500 !important;
+}
+
+/* Toast notification styling for Reddit */
+.chatmarker-toast {
+  background: #1a1a1b !important;
+  border: 1px solid #343536 !important;
+}
+
+body[class*="theme-light"] .chatmarker-toast {
+  background: #1F2937 !important;
+  border: none !important;
+}
+
+/* Focus states */
+.chatmarker-note-textarea:focus,
+.chatmarker-custom-datetime:focus {
+  outline: none !important;
+  border-color: #ff4500 !important;
+  box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1) !important;
+}
+
+/* Modal overlay backdrop for Reddit */
+.chatmarker-inline-modal {
+  backdrop-filter: blur(2px);
+}
+
+/* Responsive adjustments for Reddit mobile */
+@media (max-width: 768px) {
+  .chatmarker-inline-modal > div {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 16px !important;
+  }
+}
+
+/* Animation timing */
+.chatmarker-inline-modal {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ensure proper z-index stacking */
+.chatmarker-toast {
+  z-index: 1000000 !important;
+}
+
+/* Old Reddit compatibility */
+body.listing-page .chatmarker-inline-modal,
+body.comments-page .chatmarker-inline-modal {
+  font-family: verdana, arial, helvetica, sans-serif;
+}
+
+/* New Reddit compatibility */
+.chatmarker-inline-modal {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Button states */
+.chatmarker-save-btn:active {
+  transform: scale(0.98);
+}
+
+.chatmarker-cancel-btn:active {
+  transform: scale(0.98);
+}
+
+.chatmarker-quick-reminder:active {
+  transform: scale(0.95);
+}
+
+/* Scrollbar styling for dark theme */
+body[class*="theme-dark"] .chatmarker-note-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+body[class*="theme-dark"] .chatmarker-note-textarea::-webkit-scrollbar-track {
+  background: #1a1a1b;
+}
+
+body[class*="theme-dark"] .chatmarker-note-textarea::-webkit-scrollbar-thumb {
+  background: #343536;
+  border-radius: 4px;
+}
+
+body[class*="theme-dark"] .chatmarker-note-textarea::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+/* Chat List Indicators */
+.chatmarker-list-indicator {
+  margin-left: 6px !important;
+  font-size: 14px !important;
+  vertical-align: middle !important;
+  display: inline-block !important;
+  animation: fadeInScale 0.3s ease;
+  cursor: help;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Hover effect on indicator */
+.chatmarker-list-indicator:hover {
+  transform: scale(1.2);
+  transition: transform 0.2s ease;
+}
