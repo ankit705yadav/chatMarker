@@ -2,7 +2,7 @@
 
 > **Mark and organize chats across messaging platforms**
 
-A Chrome extension that lets you mark, label, add notes, and set reminders for important chat conversations on WhatsApp and Reddit.
+A Chrome extension that lets you mark, label, add notes, and set reminders for important chat conversations on WhatsApp, Reddit, and Facebook Messenger.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/chatmarker)
 [![Chrome](https://img.shields.io/badge/chrome-114%2B-green.svg)](https://www.google.com/chrome/)
@@ -12,27 +12,29 @@ A Chrome extension that lets you mark, label, add notes, and set reminders for i
 
 ## 📋 Project Status
 
-### ✅ Implemented (WhatsApp & Reddit)
+### ✅ Implemented (WhatsApp, Reddit & Facebook)
 
 - **Chat-only marking system** - Mark entire conversations, not individual messages
+- **Chat list marking** - Mark chats directly from chat list without opening them
 - **Context menus** - Right-click to mark/unmark chats
 - **Labels** - Color-coded tags (Urgent, Important, Completed, Follow-up, Question)
-- **Notes** - Add private notes to marked chats
+- **Notes** - Add private notes to marked chats (up to 500 characters)
 - **Reminders** - Set reminders with quick options or custom date/time
-- **Chat list indicators** - Visual indicators (⭐) in chat sidebar showing marked chats
+- **Chat list indicators** - Visual star indicators (⭐) in chat list showing marked chats
 - **Dashboard sidebar** - View all marked chats with search, filters, and statistics
-- **Dark mode** - Theme support with auto-detection
+- **Dark mode** - Unified dark theme across all platforms
 - **Export/Import** - Backup and restore your data
+- **Shadow DOM support** - Works with modern web component frameworks
 
 ### 🔧 Platform Support
 
-| Platform | Status | Features |
-|----------|--------|----------|
-| **WhatsApp Web** | ✅ **Fully Implemented** | Mark chats, labels, notes, reminders, indicators |
-| **Reddit Chat** | ✅ **Fully Implemented** | Mark chats, labels, notes, reminders, indicators |
-| Messenger | ⏳ Planned | Coming soon |
-| Instagram | ⏳ Planned | Coming soon |
-| LinkedIn | ⏳ Planned | Coming soon |
+| Platform | Status | Chat List Marking | Indicators | Features |
+|----------|--------|-------------------|------------|----------|
+| **WhatsApp Web** | ✅ **Fully Implemented** | ⭐ (open chat) | ⭐ Inline before time | Mark, labels, notes, reminders |
+| **Reddit Chat** | ✅ **Fully Implemented** | ⭐ (list + open) | ⭐ Inline before time | Mark, labels, notes, reminders, shadow DOM |
+| **Facebook Messenger** | ✅ **Fully Implemented** | ⭐ (list only) | ⭐ Floating overlay | Mark, labels, notes, reminders |
+| Instagram | ⏳ Planned | - | - | Coming soon |
+| LinkedIn | ⏳ Planned | - | - | Coming soon |
 
 ---
 
@@ -57,15 +59,23 @@ A Chrome extension that lets you mark, label, add notes, and set reminders for i
 
 #### On WhatsApp:
 1. Open [WhatsApp Web](https://web.whatsapp.com)
-2. Right-click anywhere on the page
-3. Select **ChatMarker → ⭐ Mark/Unmark Chat**
-4. A chat indicator (⭐) appears in the chat list sidebar
+2. Open a chat conversation
+3. Right-click anywhere on the page
+4. Select **ChatMarker → ⭐ Mark/Unmark Chat**
+5. A star indicator (⭐) appears inline before the time in chat list
 
 #### On Reddit:
-1. Open [Reddit](https://www.reddit.com) and open any chat
-2. Right-click anywhere on the page
+1. Open [Reddit](https://www.reddit.com) chat
+2. Right-click **any chat in the chat list** (or inside an open chat)
 3. Select **ChatMarker → ⭐ Mark/Unmark Chat**
-4. A chat indicator (⭐) appears in your Reddit chat list
+4. A star indicator (⭐) appears inline before the time in chat list
+
+#### On Facebook Messenger:
+1. Open [Facebook](https://www.facebook.com)
+2. Open the chat sidebar (bottom-right)
+3. Right-click **any chat in the chat list**
+4. Select **ChatMarker → ⭐ Mark/Unmark Chat**
+5. A star indicator (⭐) appears in the chat list
 
 ### 2. Add Labels
 
@@ -105,9 +115,9 @@ chatMarker/
 ├── background.js              # Service worker (storage, reminders, navigation)
 │
 ├── content-scripts/           # Platform integrations
-│   ├── whatsapp.js           # ✅ WhatsApp Web (822 lines)
-│   ├── reddit.js             # ✅ Reddit Chat (1,153 lines)
-│   ├── messenger.js          # ⏳ Placeholder
+│   ├── whatsapp.js           # ✅ WhatsApp Web (~1,100 lines)
+│   ├── reddit.js             # ✅ Reddit Chat (~1,400 lines)
+│   ├── messenger.js          # ✅ Facebook Messenger (~950 lines)
 │   ├── instagram.js          # ⏳ Placeholder
 │   └── linkedin.js           # ⏳ Placeholder
 │
@@ -119,7 +129,8 @@ chatMarker/
 ├── styles/                    # Platform-specific CSS
 │   ├── common.css            # Shared modal/toast styles
 │   ├── whatsapp.css          # WhatsApp theme
-│   └── reddit.css            # Reddit theme with Lit compatibility
+│   ├── reddit.css            # Reddit theme with Lit compatibility
+│   └── messenger.css         # Facebook Messenger theme
 │
 ├── utils/
 │   └── storage.js            # Chrome storage wrapper (25+ functions)
@@ -167,12 +178,13 @@ chatMarker/
 
 ### Technical
 
-- **Shadow DOM support** - Works with Reddit's Lit framework
-- **MutationObserver** - Real-time chat list updates
-- **Chrome Storage API** - Reliable data persistence
-- **Context Menus** - Native right-click integration
-- **Background Service Worker** - Reminder notifications
-- **Side Panel API** - Persistent sidebar experience
+- **Shadow DOM support** - Works with Reddit's Lit framework using composedPath()
+- **MutationObserver** - Real-time chat list updates across all platforms
+- **Chrome Storage API** - Reliable data persistence with CRUD operations
+- **Context Menus** - Platform-specific menus with contexts: ['all'] for link support
+- **Background Service Worker** - Reminder notifications and alarms
+- **Side Panel API** - Persistent sidebar experience (Chrome 114+)
+- **Event composedPath()** - Traverses shadow DOM boundaries for element detection
 
 ---
 
@@ -229,9 +241,11 @@ For complete testing checklist, see [docs/TEST.md](docs/TEST.md)
 - Verify you're on the correct URL
 
 ### Indicators not appearing
-- Open chat first (for Reddit)
+- **WhatsApp**: Open the chat first to mark it
+- **Reddit/Facebook**: Right-click directly on chat list items
 - Wait 1-2 seconds for observer to run
 - Check console for `[ChatMarker]` logs
+- Reload the page if indicators don't update
 
 ---
 
@@ -273,16 +287,18 @@ For complete testing checklist, see [docs/TEST.md](docs/TEST.md)
 
 ### ✅ Completed
 - [x] Foundation & architecture
-- [x] Storage system
+- [x] Storage system with 25+ functions
 - [x] Dashboard UI with sidebar
-- [x] WhatsApp Web integration
-- [x] Reddit Chat integration
-- [x] Chat list indicators
+- [x] WhatsApp Web integration (open chat marking)
+- [x] Reddit Chat integration (chat list marking with shadow DOM)
+- [x] Facebook Messenger integration (chat list marking)
+- [x] Chat list indicators (inline and overlay styles)
 - [x] Labels, notes, reminders
-- [x] Dark mode support
+- [x] Unified dark mode support
+- [x] Platform-specific context menus
 
 ### 🔄 In Progress
-- [ ] Messenger integration
+- [ ] WhatsApp chat list marking (currently marks from open chat)
 - [ ] Instagram integration
 - [ ] LinkedIn integration
 
@@ -326,7 +342,7 @@ MIT License - see LICENSE file for details
 ---
 
 **Current Version**: 1.0.0
-**Last Updated**: 2025-11-01
+**Last Updated**: 2025-11-02
 **Status**: Active Development 🚀
 
-**Platforms**: WhatsApp ✅ | Reddit ✅ | Messenger ⏳ | Instagram ⏳ | LinkedIn ⏳
+**Platforms**: WhatsApp ✅ | Reddit ✅ | Facebook Messenger ✅ | Instagram ⏳ | LinkedIn ⏳
