@@ -207,18 +207,21 @@ function updateTabCounts() {
   const whatsappCount = allChatMarkers.filter(c => c.platform === 'whatsapp').length;
   const redditCount = allChatMarkers.filter(c => c.platform === 'reddit').length;
   const instagramCount = allChatMarkers.filter(c => c.platform === 'instagram').length;
+  const linkedinCount = allChatMarkers.filter(c => c.platform === 'linkedin').length;
 
   const tabCountAll = document.getElementById('tabCountAll');
   const tabCountFacebook = document.getElementById('tabCountFacebook');
   const tabCountWhatsapp = document.getElementById('tabCountWhatsapp');
   const tabCountReddit = document.getElementById('tabCountReddit');
   const tabCountInstagram = document.getElementById('tabCountInstagram');
+  const tabCountLinkedin = document.getElementById('tabCountLinkedin');
 
   if (tabCountAll) tabCountAll.textContent = allCount;
   if (tabCountFacebook) tabCountFacebook.textContent = facebookCount;
   if (tabCountWhatsapp) tabCountWhatsapp.textContent = whatsappCount;
   if (tabCountReddit) tabCountReddit.textContent = redditCount;
   if (tabCountInstagram) tabCountInstagram.textContent = instagramCount;
+  if (tabCountLinkedin) tabCountLinkedin.textContent = linkedinCount;
 }
 
 /**

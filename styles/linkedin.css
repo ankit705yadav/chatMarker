@@ -1,6 +1,12 @@
 /**
  * ChatMarker - LinkedIn Specific Styles
- * To be fully implemented in Day 3
+ * Inline indicator style (before time element)
  */
 
-/* LinkedIn-specific mark icon positioning will go here */
+/* LinkedIn chat list indicator - Inline style */
+.chatmarker-linkedin-indicator {
+  margin-right: 4px;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-block;
+}

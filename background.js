@@ -749,7 +749,78 @@ function createContextMenus() {
       contexts: ['all']
     });
 
-    console.log('[ChatMarker] Chat-only context menus created (including Facebook, Reddit, and Instagram-specific menus)');
+    // ========== LinkedIn-specific context menus with 'all' contexts ==========
+    // LinkedIn needs 'all' contexts to work on chat list items
+
+    // Main ChatMarker menu for LinkedIn
+    chrome.contextMenus.create({
+      id: 'chatmarker-main-linkedin',
+      title: 'ChatMarker',
+      contexts: ['all'],
+      documentUrlPatterns: [
+        'https://www.linkedin.com/*'
+      ]
+    });
+
+    // Mark/Unmark chat (LinkedIn)
+    chrome.contextMenus.create({
+      id: 'chatmarker-mark-chat-linkedin',
+      parentId: 'chatmarker-main-linkedin',
+      title: '⭐ Mark/Unmark Chat',
+      contexts: ['all']
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-1-linkedin',
+      parentId: 'chatmarker-main-linkedin',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add labels submenu (LinkedIn)
+    chrome.contextMenus.create({
+      id: 'chatmarker-labels-linkedin',
+      parentId: 'chatmarker-main-linkedin',
+      title: '🏷️ Add Label',
+      contexts: ['all']
+    });
+
+    // Label options for LinkedIn (with unique IDs)
+    labels.forEach(label => {
+      chrome.contextMenus.create({
+        id: `chatmarker-label-${label.id}-linkedin`,
+        parentId: 'chatmarker-labels-linkedin',
+        title: `${label.emoji} ${label.name}`,
+        contexts: ['all']
+      });
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-2-linkedin',
+      parentId: 'chatmarker-main-linkedin',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add note (LinkedIn)
+    chrome.contextMenus.create({
+      id: 'chatmarker-note-linkedin',
+      parentId: 'chatmarker-main-linkedin',
+      title: '📝 Add/Edit Note',
+      contexts: ['all']
+    });
+
+    // Set reminder (LinkedIn)
+    chrome.contextMenus.create({
+      id: 'chatmarker-reminder-linkedin',
+      parentId: 'chatmarker-main-linkedin',
+      title: '⏰ Set/Edit Reminder',
+      contexts: ['all']
+    });
+
+    console.log('[ChatMarker] Chat-only context menus created (including Facebook, Reddit, Instagram, and LinkedIn-specific menus)');
   });
 }
 
@@ -759,7 +830,7 @@ function createContextMenus() {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('[ChatMarker] Context menu clicked:', info.menuItemId);
 
-  // Normalize platform-specific menu IDs by removing '-facebook', '-reddit', or '-instagram' suffix
+  // Normalize platform-specific menu IDs by removing '-facebook', '-reddit', '-instagram', or '-linkedin' suffix
   // This allows content scripts to handle both regular and platform-specific menus with same logic
   let menuItemId = info.menuItemId;
   if (menuItemId.endsWith('-facebook')) {
@@ -771,6 +842,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   } else if (menuItemId.endsWith('-instagram')) {
     menuItemId = menuItemId.replace('-instagram', '');
     console.log('[ChatMarker] Normalized Instagram menu ID:', menuItemId);
+  } else if (menuItemId.endsWith('-linkedin')) {
+    menuItemId = menuItemId.replace('-linkedin', '');
+    console.log('[ChatMarker] Normalized LinkedIn menu ID:', menuItemId);
   }
 
   // Send message to content script to handle the action
