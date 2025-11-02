@@ -456,8 +456,8 @@ function capitalizeFirst(str) {
 function createContextMenus() {
   // Remove all existing menus first
   chrome.contextMenus.removeAll(() => {
-    // Main ChatMarker menu (for WhatsApp, Reddit, etc. - NOT Facebook)
-    // Facebook has its own menu with contexts: ['all'] below
+    // Main ChatMarker menu (for WhatsApp only - NOT Facebook or Reddit)
+    // Facebook and Reddit have their own menus with contexts: ['all'] below
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
@@ -466,9 +466,7 @@ function createContextMenus() {
         'https://web.whatsapp.com/*',
         'https://www.messenger.com/*',
         'https://www.instagram.com/*',
-        'https://www.linkedin.com/*',
-        'https://www.reddit.com/*',
-        'https://old.reddit.com/*'
+        'https://www.linkedin.com/*'
       ]
     });
 
@@ -609,7 +607,79 @@ function createContextMenus() {
       contexts: ['all']
     });
 
-    console.log('[ChatMarker] Chat-only context menus created (including Facebook-specific menus)');
+    // ========== Reddit-specific context menus with 'all' contexts ==========
+    // Reddit needs 'all' contexts to work on chat list items
+
+    // Main ChatMarker menu for Reddit
+    chrome.contextMenus.create({
+      id: 'chatmarker-main-reddit',
+      title: 'ChatMarker',
+      contexts: ['all'],
+      documentUrlPatterns: [
+        'https://www.reddit.com/*',
+        'https://old.reddit.com/*'
+      ]
+    });
+
+    // Mark/Unmark chat (Reddit)
+    chrome.contextMenus.create({
+      id: 'chatmarker-mark-chat-reddit',
+      parentId: 'chatmarker-main-reddit',
+      title: '⭐ Mark/Unmark Chat',
+      contexts: ['all']
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-1-reddit',
+      parentId: 'chatmarker-main-reddit',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add labels submenu (Reddit)
+    chrome.contextMenus.create({
+      id: 'chatmarker-labels-reddit',
+      parentId: 'chatmarker-main-reddit',
+      title: '🏷️ Add Label',
+      contexts: ['all']
+    });
+
+    // Label options for Reddit (with unique IDs)
+    labels.forEach(label => {
+      chrome.contextMenus.create({
+        id: `chatmarker-label-${label.id}-reddit`,
+        parentId: 'chatmarker-labels-reddit',
+        title: `${label.emoji} ${label.name}`,
+        contexts: ['all']
+      });
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-2-reddit',
+      parentId: 'chatmarker-main-reddit',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add note (Reddit)
+    chrome.contextMenus.create({
+      id: 'chatmarker-note-reddit',
+      parentId: 'chatmarker-main-reddit',
+      title: '📝 Add/Edit Note',
+      contexts: ['all']
+    });
+
+    // Set reminder (Reddit)
+    chrome.contextMenus.create({
+      id: 'chatmarker-reminder-reddit',
+      parentId: 'chatmarker-main-reddit',
+      title: '⏰ Set/Edit Reminder',
+      contexts: ['all']
+    });
+
+    console.log('[ChatMarker] Chat-only context menus created (including Facebook and Reddit-specific menus)');
   });
 }
 
@@ -619,12 +689,15 @@ function createContextMenus() {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('[ChatMarker] Context menu clicked:', info.menuItemId);
 
-  // Normalize Facebook-specific menu IDs by removing '-facebook' suffix
-  // This allows content scripts to handle both regular and Facebook menus with same logic
+  // Normalize platform-specific menu IDs by removing '-facebook' or '-reddit' suffix
+  // This allows content scripts to handle both regular and platform-specific menus with same logic
   let menuItemId = info.menuItemId;
   if (menuItemId.endsWith('-facebook')) {
     menuItemId = menuItemId.replace('-facebook', '');
     console.log('[ChatMarker] Normalized Facebook menu ID:', menuItemId);
+  } else if (menuItemId.endsWith('-reddit')) {
+    menuItemId = menuItemId.replace('-reddit', '');
+    console.log('[ChatMarker] Normalized Reddit menu ID:', menuItemId);
   }
 
   // Send message to content script to handle the action

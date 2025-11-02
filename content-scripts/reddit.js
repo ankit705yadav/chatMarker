@@ -29,6 +29,7 @@ const SELECTORS = {
 // State management
 let isInitialized = false;
 let currentChatId = null;
+let lastRightClickedElement = null;
 
 /**
  * Check if extension context is valid
@@ -147,6 +148,9 @@ async function init() {
     // Listen for messages from background
     chrome.runtime.onMessage.addListener(handleBackgroundMessage);
 
+    // Set up right-click capture for chat list marking
+    setupContextMenuCapture();
+
     // Set up chat list observer for indicators
     setTimeout(() => {
       setupChatListObserver();
@@ -237,10 +241,125 @@ function findAllInShadowDOM(selector, root = document) {
 }
 
 /**
+ * Capture right-click events to know which chat list item was clicked
+ */
+function setupContextMenuCapture() {
+  document.addEventListener('contextmenu', (e) => {
+    lastRightClickedElement = e.target;
+
+    // Store the composed path (includes shadow DOM)
+    if (e.composedPath) {
+      window.chatMarkerLastClickPath = e.composedPath();
+      console.log('[ChatMarker] Right-clicked element (with composed path):', e.target);
+      console.log('[ChatMarker] Composed path length:', window.chatMarkerLastClickPath.length);
+    } else {
+      window.chatMarkerLastClickPath = null;
+      console.log('[ChatMarker] Right-clicked element:', e.target);
+    }
+  }, true);
+}
+
+/**
+ * Extract chat name from right-clicked chat list item
+ */
+function getChatNameFromRightClick() {
+  if (!lastRightClickedElement && !window.chatMarkerLastClickPath) {
+    console.log('[ChatMarker] No lastRightClickedElement or composedPath');
+    return null;
+  }
+
+  console.log('[ChatMarker] Extracting from right-clicked element:', lastRightClickedElement);
+
+  // Method 1: Use composedPath if available (handles shadow DOM)
+  if (window.chatMarkerLastClickPath) {
+    console.log('[ChatMarker] Using composedPath to traverse shadow DOM boundaries');
+
+    for (let i = 0; i < window.chatMarkerLastClickPath.length; i++) {
+      const element = window.chatMarkerLastClickPath[i];
+
+      // Debug first 10 elements
+      if (i < 10) {
+        console.log(`[ChatMarker] Path[${i}]:`, element.tagName || element.nodeName, element.className || '');
+      }
+
+      // Look for <a> element with aria-label
+      if (element.tagName === 'A') {
+        const ariaLabel = element.getAttribute?.('aria-label');
+        console.log('[ChatMarker] Found <a> with aria-label:', ariaLabel);
+
+        if (ariaLabel?.includes('Direct chat with')) {
+          const match = ariaLabel.match(/Direct chat with ([A-Za-z0-9_-]+)/);
+          if (match) {
+            console.log('[ChatMarker] ✅ Extracted chat name from aria-label (composedPath):', match[1]);
+            return match[1];
+          }
+        }
+
+        // Try to find room-name span inside this <a>
+        if (element.querySelector) {
+          const roomNameSpan = element.querySelector('.room-name');
+          if (roomNameSpan) {
+            const name = roomNameSpan.textContent.trim();
+            if (name && name.length > 0) {
+              console.log('[ChatMarker] ✅ Extracted chat name from room-name span (composedPath):', name);
+              return name;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Method 2: Fallback to normal DOM traversal
+  let element = lastRightClickedElement;
+  let depth = 0;
+  const maxDepth = 20;
+
+  while (element && depth < maxDepth) {
+    // Look for the <a> element with aria-label containing "Direct chat with"
+    if (element.tagName === 'A') {
+      const ariaLabel = element.getAttribute('aria-label');
+
+      if (ariaLabel?.includes('Direct chat with')) {
+        const match = ariaLabel.match(/Direct chat with ([A-Za-z0-9_-]+)/);
+        if (match) {
+          console.log('[ChatMarker] ✅ Extracted chat name from aria-label:', match[1]);
+          return match[1];
+        }
+      }
+
+      // Also try to find room-name span inside this <a>
+      const roomNameSpan = element.querySelector('.room-name');
+      if (roomNameSpan) {
+        const name = roomNameSpan.textContent.trim();
+        if (name && name.length > 0) {
+          console.log('[ChatMarker] ✅ Extracted chat name from room-name span:', name);
+          return name;
+        }
+      }
+    }
+
+    element = element.parentElement;
+    depth++;
+  }
+
+  console.log('[ChatMarker] ❌ Could not extract chat name from right-click');
+  return null;
+}
+
+/**
  * Extract chat ID from current conversation
  */
 function getCurrentChatId() {
   console.log('[ChatMarker] Attempting to get chat ID...');
+
+  // First, try to generate ID from right-clicked chat list item
+  const nameFromRightClick = getChatNameFromRightClick();
+  if (nameFromRightClick) {
+    const chatId = `reddit_chat_${nameFromRightClick}`;
+    console.log('[ChatMarker] Generated chat ID from right-click:', chatId);
+    return chatId;
+  }
 
   // Method 1: Look for the div with title and aria-label containing "Direct chat" (including Shadow DOM)
   const titleDiv = findInShadowDOM('div[title][aria-label*="Direct chat"]');
@@ -326,6 +445,12 @@ function getCurrentChatId() {
  */
 function getChatName() {
   console.log('[ChatMarker] Attempting to get chat name...');
+
+  // First, try to get from right-clicked chat list item
+  const nameFromRightClick = getChatNameFromRightClick();
+  if (nameFromRightClick) {
+    return nameFromRightClick;
+  }
 
   // Method 1: Look for the div with title attribute (including Shadow DOM)
   const titleDiv = findInShadowDOM('div[title][aria-label*="Direct chat"]');
@@ -1193,22 +1318,31 @@ function processChatListItem(listItem, chatMarkers) {
  * Add indicator to chat list item
  */
 function addChatListIndicator(listItem, chatMarker) {
-  // Make the list item positioned so we can absolutely position the indicator
-  listItem.style.position = 'relative';
+  // Find the time element (span with class "last-message-time")
+  const timeElement = listItem.querySelector('.last-message-time');
 
-  // Create indicator as an overlay (not inside Lit-managed elements)
+  if (!timeElement) {
+    console.warn('[ChatMarker] Could not find time element for indicator');
+    return;
+  }
+
+  // Check if indicator already exists in this specific location
+  const existingIndicator = timeElement.querySelector('[data-chatmarker-indicator]');
+  if (existingIndicator) {
+    console.log('[ChatMarker] Indicator already exists in time element, skipping');
+    return;
+  }
+
+  // Create indicator as inline element
   const indicator = document.createElement('span');
   indicator.className = 'chatmarker-list-indicator';
-  indicator.setAttribute('data-chatmarker-indicator', 'true'); // For easy identification
+  indicator.setAttribute('data-chatmarker-indicator', 'true');
   indicator.style.cssText = `
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 16px;
+    display: inline-block;
+    margin-right: 4px;
+    font-size: 14px;
     line-height: 1;
-    z-index: 10;
-    pointer-events: none;
-    animation: fadeInScale 0.3s ease;
+    vertical-align: middle;
   `;
 
   // Determine icon based on labels
@@ -1223,9 +1357,9 @@ function addChatListIndicator(listItem, chatMarker) {
     indicator.title = 'Marked chat';
   }
 
-  // Append directly to the <a> element (not inside Lit-managed spans)
-  listItem.appendChild(indicator);
-  console.log('[ChatMarker] Added indicator overlay to:', chatMarker.chatName);
+  // Insert star before the time text
+  timeElement.insertBefore(indicator, timeElement.firstChild);
+  console.log('[ChatMarker] Added indicator before time to:', chatMarker.chatName);
 }
 
 /**
