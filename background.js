@@ -551,9 +551,9 @@ function createContextMenus() {
       ]
     });
 
-    // Mark/Unmark chat
+    // Mark/Unmark chat (Facebook)
     chrome.contextMenus.create({
-      id: 'chatmarker-mark-chat',
+      id: 'chatmarker-mark-chat-facebook',
       parentId: 'chatmarker-main-facebook',
       title: '⭐ Mark/Unmark Chat',
       contexts: ['all']
@@ -567,7 +567,7 @@ function createContextMenus() {
       contexts: ['all']
     });
 
-    // Add labels submenu
+    // Add labels submenu (Facebook)
     chrome.contextMenus.create({
       id: 'chatmarker-labels-facebook',
       parentId: 'chatmarker-main-facebook',
@@ -575,10 +575,10 @@ function createContextMenus() {
       contexts: ['all']
     });
 
-    // Label options for Facebook
+    // Label options for Facebook (with unique IDs)
     labels.forEach(label => {
       chrome.contextMenus.create({
-        id: `chatmarker-label-${label.id}`,
+        id: `chatmarker-label-${label.id}-facebook`,
         parentId: 'chatmarker-labels-facebook',
         title: `${label.emoji} ${label.name}`,
         contexts: ['all']
@@ -593,17 +593,17 @@ function createContextMenus() {
       contexts: ['all']
     });
 
-    // Add note
+    // Add note (Facebook)
     chrome.contextMenus.create({
-      id: 'chatmarker-note',
+      id: 'chatmarker-note-facebook',
       parentId: 'chatmarker-main-facebook',
       title: '📝 Add/Edit Note',
       contexts: ['all']
     });
 
-    // Set reminder
+    // Set reminder (Facebook)
     chrome.contextMenus.create({
-      id: 'chatmarker-reminder',
+      id: 'chatmarker-reminder-facebook',
       parentId: 'chatmarker-main-facebook',
       title: '⏰ Set/Edit Reminder',
       contexts: ['all']
@@ -619,11 +619,19 @@ function createContextMenus() {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('[ChatMarker] Context menu clicked:', info.menuItemId);
 
+  // Normalize Facebook-specific menu IDs by removing '-facebook' suffix
+  // This allows content scripts to handle both regular and Facebook menus with same logic
+  let menuItemId = info.menuItemId;
+  if (menuItemId.endsWith('-facebook')) {
+    menuItemId = menuItemId.replace('-facebook', '');
+    console.log('[ChatMarker] Normalized Facebook menu ID:', menuItemId);
+  }
+
   // Send message to content script to handle the action
   try {
     chrome.tabs.sendMessage(tab.id, {
       action: 'contextMenuAction',
-      menuItemId: info.menuItemId,
+      menuItemId: menuItemId,
       selectionText: info.selectionText
     });
   } catch (error) {
