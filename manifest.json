@@ -15,7 +15,7 @@
   "host_permissions": [
     "https://web.whatsapp.com/*",
     "https://www.messenger.com/*",
-    "https://www.facebook.com/messages/*",
+    "https://www.facebook.com/*",
     "https://www.instagram.com/*",
     "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
@@ -32,7 +32,7 @@
       "run_at": "document_end"
     },
     {
-      "matches": ["https://www.messenger.com/*", "https://www.facebook.com/messages/*"],
+      "matches": ["https://www.messenger.com/*", "https://www.facebook.com/*"],
       "js": ["content-scripts/messenger.js"],
       "css": ["styles/common.css", "styles/messenger.css"],
       "run_at": "document_end"

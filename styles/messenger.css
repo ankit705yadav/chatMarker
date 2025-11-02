@@ -1,6 +1,45 @@
 /**
- * ChatMarker - Messenger Specific Styles
- * To be fully implemented in Day 3
+ * ChatMarker - Facebook Messenger Specific Styles
  */
 
-/* Messenger-specific mark icon positioning will go here */
+/* Facebook-specific adjustments */
+.chatmarker-facebook-indicator {
+  /* Positioned via inline styles for overlay approach */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Toast animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+/* Ensure modals are above Facebook's UI */
+.chatmarker-inline-modal {
+  /* z-index set via inline styles (999999) */
+}
+
+/* Smooth transitions for interactive elements */
+.chatmarker-toast {
+  /* Styles set via inline JS for theme compatibility */
+}

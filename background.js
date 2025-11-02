@@ -460,11 +460,11 @@ function createContextMenus() {
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
-      contexts: ['page'],
+      contexts: ['all'],
       documentUrlPatterns: [
         'https://web.whatsapp.com/*',
         'https://www.messenger.com/*',
-        'https://www.facebook.com/messages/*',
+        'https://www.facebook.com/*',
         'https://www.instagram.com/*',
         'https://www.linkedin.com/*',
         'https://www.reddit.com/*',
@@ -477,7 +477,7 @@ function createContextMenus() {
       id: 'chatmarker-mark-chat',
       parentId: 'chatmarker-main',
       title: '⭐ Mark/Unmark Chat',
-      contexts: ['page']
+      contexts: ['all']
     });
 
     // Separator
@@ -485,7 +485,7 @@ function createContextMenus() {
       id: 'chatmarker-separator-1',
       parentId: 'chatmarker-main',
       type: 'separator',
-      contexts: ['page']
+      contexts: ['all']
     });
 
     // Add labels submenu
@@ -493,7 +493,7 @@ function createContextMenus() {
       id: 'chatmarker-labels',
       parentId: 'chatmarker-main',
       title: '🏷️ Add Label',
-      contexts: ['page']
+      contexts: ['all']
     });
 
     // Label options
@@ -510,7 +510,7 @@ function createContextMenus() {
         id: `chatmarker-label-${label.id}`,
         parentId: 'chatmarker-labels',
         title: `${label.emoji} ${label.name}`,
-        contexts: ['page']
+        contexts: ['all']
       });
     });
 
@@ -519,7 +519,7 @@ function createContextMenus() {
       id: 'chatmarker-separator-2',
       parentId: 'chatmarker-main',
       type: 'separator',
-      contexts: ['page']
+      contexts: ['all']
     });
 
     // Add note
@@ -527,7 +527,7 @@ function createContextMenus() {
       id: 'chatmarker-note',
       parentId: 'chatmarker-main',
       title: '📝 Add/Edit Note',
-      contexts: ['page']
+      contexts: ['all']
     });
 
     // Set reminder
@@ -535,7 +535,7 @@ function createContextMenus() {
       id: 'chatmarker-reminder',
       parentId: 'chatmarker-main',
       title: '⏰ Set/Edit Reminder',
-      contexts: ['page']
+      contexts: ['all']
     });
 
     console.log('[ChatMarker] Chat-only context menus created');
