@@ -460,7 +460,7 @@ function createContextMenus() {
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
-      contexts: ['all'],
+      contexts: ['page'],
       documentUrlPatterns: [
         'https://web.whatsapp.com/*',
         'https://www.messenger.com/*',
@@ -477,7 +477,7 @@ function createContextMenus() {
       id: 'chatmarker-mark-chat',
       parentId: 'chatmarker-main',
       title: '⭐ Mark/Unmark Chat',
-      contexts: ['all']
+      contexts: ['page']
     });
 
     // Separator
@@ -485,7 +485,7 @@ function createContextMenus() {
       id: 'chatmarker-separator-1',
       parentId: 'chatmarker-main',
       type: 'separator',
-      contexts: ['all']
+      contexts: ['page']
     });
 
     // Add labels submenu
@@ -493,7 +493,7 @@ function createContextMenus() {
       id: 'chatmarker-labels',
       parentId: 'chatmarker-main',
       title: '🏷️ Add Label',
-      contexts: ['all']
+      contexts: ['page']
     });
 
     // Label options
@@ -510,7 +510,7 @@ function createContextMenus() {
         id: `chatmarker-label-${label.id}`,
         parentId: 'chatmarker-labels',
         title: `${label.emoji} ${label.name}`,
-        contexts: ['all']
+        contexts: ['page']
       });
     });
 
@@ -519,7 +519,7 @@ function createContextMenus() {
       id: 'chatmarker-separator-2',
       parentId: 'chatmarker-main',
       type: 'separator',
-      contexts: ['all']
+      contexts: ['page']
     });
 
     // Add note
@@ -527,7 +527,7 @@ function createContextMenus() {
       id: 'chatmarker-note',
       parentId: 'chatmarker-main',
       title: '📝 Add/Edit Note',
-      contexts: ['all']
+      contexts: ['page']
     });
 
     // Set reminder
@@ -535,7 +535,7 @@ function createContextMenus() {
       id: 'chatmarker-reminder',
       parentId: 'chatmarker-main',
       title: '⏰ Set/Edit Reminder',
-      contexts: ['all']
+      contexts: ['page']
     });
 
     console.log('[ChatMarker] Chat-only context menus created');
