@@ -97,22 +97,24 @@ function isDarkMode() {
 }
 
 /**
- * Get theme colors based on dark mode
+ * Get theme colors - Always use dark theme matching side-panel
  */
 function getThemeColors() {
-  const isDark = isDarkMode();
+  // Always return dark theme colors matching the extension side-panel
   return {
-    modalBg: isDark ? '#1F2937' : '#FFFFFF',
-    textPrimary: isDark ? '#F3F4F6' : '#111827',
-    textSecondary: isDark ? '#9CA3AF' : '#6B7280',
-    border: isDark ? '#374151' : '#D1D5DB',
-    infoBg: isDark ? '#374151' : '#F3F4F6',
-    infoText: isDark ? '#D1D5DB' : '#374151',
-    inputBg: isDark ? '#111827' : '#FFFFFF',
-    inputBorder: isDark ? '#4B5563' : '#D1D5DB',
-    buttonSecondaryBg: isDark ? '#374151' : '#FFFFFF',
-    buttonSecondaryText: isDark ? '#F3F4F6' : '#374151',
-    buttonSecondaryBorder: isDark ? '#4B5563' : '#D1D5DB',
+    modalBg: '#1E293B',        // --color-surface
+    textPrimary: '#F1F5F9',    // --color-text-primary
+    textSecondary: '#94A3B8',  // --color-text-secondary
+    border: '#334155',         // --color-border
+    infoBg: '#334155',         // --color-border (for info boxes)
+    infoText: '#94A3B8',       // --color-text-secondary
+    inputBg: '#0F172A',        // --color-background
+    inputBorder: '#334155',    // --color-border
+    buttonSecondaryBg: '#334155',   // --color-border
+    buttonSecondaryText: '#F1F5F9', // --color-text-primary
+    buttonSecondaryBorder: '#334155', // --color-border
+    primary: '#6366F1',        // --color-primary
+    primaryDark: '#4338CA',    // --color-primary-dark
   };
 }
 
@@ -780,7 +782,7 @@ function showInlineNoteModal(chatMarker) {
     </div>
     <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
       <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Cancel</button>
-      <button class="chatmarker-save-btn" style="padding: 10px 20px; border: none; background: #6366F1; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Save Note</button>
+      <button class="chatmarker-save-btn" style="padding: 10px 20px; border: none; background: ${theme.primary}; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Save Note</button>
     </div>
   `;
 
@@ -820,12 +822,12 @@ function showInlineNoteModal(chatMarker) {
   });
 
   saveBtn.addEventListener('mouseenter', () => {
-    saveBtn.style.background = '#4F46E5';
+    saveBtn.style.background = theme.primaryDark;
     saveBtn.style.transform = 'translateY(-1px)';
     saveBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
   });
   saveBtn.addEventListener('mouseleave', () => {
-    saveBtn.style.background = '#6366F1';
+    saveBtn.style.background = theme.primary;
     saveBtn.style.transform = 'translateY(0)';
     saveBtn.style.boxShadow = 'none';
   });
@@ -940,7 +942,7 @@ function showInlineReminderModal(chatMarker) {
     </div>
     <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
       <button class="chatmarker-cancel-btn" style="padding: 10px 20px; border: 1px solid ${theme.buttonSecondaryBorder}; background: ${theme.buttonSecondaryBg}; color: ${theme.buttonSecondaryText}; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s;">Cancel</button>
-      <button class="chatmarker-save-reminder-btn" disabled style="padding: 10px 20px; border: none; background: #9CA3AF; color: white; border-radius: 6px; font-weight: 500; cursor: not-allowed; font-size: 14px; transition: all 0.2s;">Set Reminder</button>
+      <button class="chatmarker-save-reminder-btn" disabled style="padding: 10px 20px; border: none; background: ${theme.textSecondary}; color: white; border-radius: 6px; font-weight: 500; cursor: not-allowed; font-size: 14px; transition: all 0.2s;">Set Reminder</button>
     </div>
   `;
 
@@ -957,15 +959,15 @@ function showInlineReminderModal(chatMarker) {
   // Function to enable save button
   const enableSaveButton = () => {
     saveBtn.disabled = false;
-    saveBtn.style.background = '#6366F1';
+    saveBtn.style.background = theme.primary;
     saveBtn.style.cursor = 'pointer';
   };
 
   // Add hover effects for quick reminder buttons
   quickBtns.forEach(btn => {
     btn.addEventListener('mouseenter', () => {
-      btn.style.background = '#6366F1';
-      btn.style.borderColor = '#6366F1';
+      btn.style.background = theme.primary;
+      btn.style.borderColor = theme.primary;
       btn.style.color = 'white';
       btn.style.transform = 'translateY(-2px)';
       btn.style.boxShadow = '0 4px 8px rgba(99, 102, 241, 0.2)';
@@ -981,7 +983,7 @@ function showInlineReminderModal(chatMarker) {
 
   // Add focus/blur effects for datetime input
   customDateTime.addEventListener('focus', () => {
-    customDateTime.style.borderColor = '#6366F1';
+    customDateTime.style.borderColor = theme.primary;
     customDateTime.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
   });
   customDateTime.addEventListener('blur', () => {
@@ -1007,14 +1009,14 @@ function showInlineReminderModal(chatMarker) {
   // Add hover effects for save button (when enabled)
   saveBtn.addEventListener('mouseenter', () => {
     if (!saveBtn.disabled) {
-      saveBtn.style.background = '#4F46E5';
+      saveBtn.style.background = theme.primaryDark;
       saveBtn.style.transform = 'translateY(-1px)';
       saveBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
     }
   });
   saveBtn.addEventListener('mouseleave', () => {
     if (!saveBtn.disabled) {
-      saveBtn.style.background = '#6366F1';
+      saveBtn.style.background = theme.primary;
       saveBtn.style.transform = 'translateY(0)';
       saveBtn.style.boxShadow = 'none';
     }
