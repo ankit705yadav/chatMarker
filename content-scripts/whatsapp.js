@@ -120,6 +120,11 @@ async function init() {
     // Listen for messages from background
     chrome.runtime.onMessage.addListener(handleBackgroundMessage);
 
+    // Set up chat list observer for indicators
+    setTimeout(() => {
+      setupChatListObserver();
+    }, 2000);
+
     isInitialized = true;
     console.log('[ChatMarker] WhatsApp Web integration ready (chat-only mode)');
   } catch (error) {
@@ -299,6 +304,7 @@ async function markCurrentChat() {
               if (deleteResponse && deleteResponse.success) {
                 console.log('[ChatMarker] Chat unmarked:', chatName);
                 showToast(`✅ Chat "${chatName}" unmarked`);
+                updateChatListIndicators(); // Refresh indicators
               } else {
                 console.error('[ChatMarker] Failed to unmark chat');
                 showToast('❌ Failed to unmark chat');
@@ -325,6 +331,7 @@ async function markCurrentChat() {
               if (saveResponse && saveResponse.success) {
                 console.log('[ChatMarker] Chat marked successfully:', chatName);
                 showToast(`✅ Chat "${chatName}" marked`);
+                updateChatListIndicators(); // Refresh indicators
               } else {
                 console.error('[ChatMarker] Failed to mark chat:', saveResponse?.error);
                 showToast('❌ Failed to mark chat');
@@ -387,6 +394,8 @@ async function toggleChatLabel(labelName) {
               if (!saveResponse || !saveResponse.success) {
                 console.error('[ChatMarker] Failed to update labels');
                 showToast('❌ Failed to update label');
+              } else {
+                updateChatListIndicators(); // Refresh indicators
               }
             }
           );
@@ -409,6 +418,7 @@ async function toggleChatLabel(labelName) {
             (saveResponse) => {
               if (saveResponse && saveResponse.success) {
                 showToast(`✅ Chat marked with "${labelName}" label`);
+                updateChatListIndicators(); // Refresh indicators
               } else {
                 showToast('❌ Failed to mark chat');
               }
@@ -662,6 +672,7 @@ function showInlineNoteModal(chatMarker) {
         if (response && response.success) {
           showToast('✅ Note saved');
           closeModal();
+          updateChatListIndicators(); // Refresh indicators
         } else {
           showToast('❌ Failed to save note');
         }
@@ -886,12 +897,200 @@ function showInlineReminderModal(chatMarker) {
           const date = new Date(reminderTime);
           showToast(`✅ Reminder set for ${date.toLocaleString()}`);
           closeModal();
+          updateChatListIndicators(); // Refresh indicators
         } else {
           showToast('❌ Failed to set reminder');
         }
       }
     );
   }
+}
+
+/**
+ * Set up observer for chat list to add indicators
+ */
+function setupChatListObserver() {
+  console.log('[ChatMarker] Setting up chat list observer for indicators...');
+
+  // Initial update
+  setTimeout(() => {
+    updateChatListIndicators();
+  }, 1000);
+
+  // Set up MutationObserver to watch for chat list changes
+  const observer = new MutationObserver(() => {
+    clearTimeout(window.whatsappChatListUpdateTimeout);
+    window.whatsappChatListUpdateTimeout = setTimeout(() => {
+      updateChatListIndicators();
+    }, 500);
+  });
+
+  // Observe the entire document for changes (WhatsApp is highly dynamic)
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  console.log('[ChatMarker] Chat list observer set up');
+}
+
+/**
+ * Update indicators for all marked chats in the list
+ */
+function updateChatListIndicators() {
+  safeSendMessage(
+    {
+      action: 'getAllChatMarkers'
+    },
+    (response) => {
+      if (response && response.success && response.data) {
+        // Convert object to array if needed
+        const markersData = response.data;
+        const markers = Array.isArray(markersData) ? markersData : Object.values(markersData);
+        const whatsappMarkers = markers.filter(m => m.platform === 'whatsapp');
+
+        console.log('[ChatMarker] Found', whatsappMarkers.length, 'WhatsApp markers');
+
+        const chatItems = findChatListItems();
+
+        chatItems.forEach(({ element, name }) => {
+          // Match by chat name since chat list items don't have the same ID format
+          const matchedMarker = whatsappMarkers.find(m => m.chatName === name);
+          const isMarked = !!matchedMarker;
+
+          console.log(`[ChatMarker] Chat "${name}": marked=${isMarked}`);
+
+          // Check if indicator already exists
+          const existingIndicator = element.querySelector('.chatmarker-whatsapp-indicator');
+
+          if (isMarked && !existingIndicator) {
+            console.log(`[ChatMarker] ⭐ Adding indicator to "${name}"`);
+            addChatListIndicator(element, matchedMarker);
+          } else if (!isMarked && existingIndicator) {
+            console.log(`[ChatMarker] Removing indicator from "${name}"`);
+            existingIndicator.remove();
+          } else if (isMarked && existingIndicator) {
+            console.log(`[ChatMarker] Indicator already exists for "${name}"`);
+          }
+        });
+      }
+    }
+  );
+}
+
+/**
+ * Find all chat list items in WhatsApp sidebar
+ */
+function findChatListItems() {
+  const chatItems = [];
+
+  // WhatsApp chat list items - updated selectors based on current DOM
+  const selectors = [
+    'div._ak72',  // Current WhatsApp structure
+    'div[role="listitem"]',
+    'div[data-testid="cell-frame-container"]'
+  ];
+
+  let allChatElements = [];
+  for (const selector of selectors) {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      allChatElements = Array.from(elements);
+      console.log(`[ChatMarker] Found ${elements.length} chat items using selector: ${selector}`);
+      break;
+    }
+  }
+
+  if (allChatElements.length === 0) {
+    console.warn('[ChatMarker] No chat items found with any selector');
+    return chatItems;
+  }
+
+  allChatElements.forEach(element => {
+    // Try to extract chat name from the element
+    const chatName = extractChatNameFromListItem(element);
+    if (chatName) {
+      console.log(`[ChatMarker] Found chat item: "${chatName}"`);
+      chatItems.push({
+        element: element,
+        name: chatName
+      });
+    }
+  });
+
+  console.log('[ChatMarker] Total chat items with names:', chatItems.length);
+  return chatItems;
+}
+
+/**
+ * Extract chat name from a chat list item
+ */
+function extractChatNameFromListItem(element) {
+  // Try to find span with title attribute first (most reliable)
+  const titleSpan = element.querySelector('span[title]');
+  if (titleSpan) {
+    const title = titleSpan.getAttribute('title');
+    if (title && title.length > 0) {
+      // Make sure it's not a message preview or timestamp
+      if (!title.match(/^\d/) && !title.includes(':')) {
+        return title;
+      }
+    }
+  }
+
+  // Fallback: try other selectors
+  const selectors = [
+    'span[data-testid="conversation-title"]',
+    'span.x1iyjqo2.x6ikm8r.x10wlt62.x1n2onr6.xlyipyv.xuxw1ft[dir="auto"]'
+  ];
+
+  for (const selector of selectors) {
+    const nameElement = element.querySelector(selector);
+    if (nameElement) {
+      const name = nameElement.textContent.trim();
+      if (name && name.length > 0) {
+        return name;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Add star indicator to a chat list item
+ */
+function addChatListIndicator(chatElement, chatMarker) {
+  // Find the parent container to position relative to
+  // The indicator should be on the outer container
+  let container = chatElement;
+
+  // If this is the inner _ak72 div, go up to the parent
+  if (chatElement.classList.contains('_ak72')) {
+    container = chatElement.parentElement;
+  }
+
+  // Make sure the container is positioned
+  if (!container.style.position || container.style.position === 'static') {
+    container.style.position = 'relative';
+  }
+
+  const indicator = document.createElement('div');
+  indicator.className = 'chatmarker-whatsapp-indicator';
+  indicator.textContent = '⭐';
+  indicator.style.cssText = `
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 18px;
+    z-index: 999;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+    line-height: 1;
+  `;
+
+  container.appendChild(indicator);
+  console.log('[ChatMarker] ✅ Star indicator added to container');
 }
 
 /**
