@@ -958,10 +958,11 @@ function updateChatListIndicators() {
           const matchedMarker = whatsappMarkers.find(m => m.chatName === name);
           const isMarked = !!matchedMarker;
 
-          console.log(`[ChatMarker] Chat "${name}": marked=${isMarked}`);
-
-          // Check if indicator already exists
-          const existingIndicator = element.querySelector('.chatmarker-whatsapp-indicator');
+          // Check if indicator already exists (search in both element and parent)
+          let existingIndicator = element.querySelector('.chatmarker-whatsapp-indicator');
+          if (!existingIndicator && element.parentElement) {
+            existingIndicator = element.parentElement.querySelector('.chatmarker-whatsapp-indicator');
+          }
 
           if (isMarked && !existingIndicator) {
             console.log(`[ChatMarker] ⭐ Adding indicator to "${name}"`);
@@ -969,8 +970,6 @@ function updateChatListIndicators() {
           } else if (!isMarked && existingIndicator) {
             console.log(`[ChatMarker] Removing indicator from "${name}"`);
             existingIndicator.remove();
-          } else if (isMarked && existingIndicator) {
-            console.log(`[ChatMarker] Indicator already exists for "${name}"`);
           }
         });
       }
@@ -1061,36 +1060,36 @@ function extractChatNameFromListItem(element) {
  * Add star indicator to a chat list item
  */
 function addChatListIndicator(chatElement, chatMarker) {
-  // Find the parent container to position relative to
-  // The indicator should be on the outer container
-  let container = chatElement;
+  // Find the time element - it has class "_ak8i" and contains the time text
+  const timeElement = chatElement.querySelector('._ak8i.false');
 
-  // If this is the inner _ak72 div, go up to the parent
-  if (chatElement.classList.contains('_ak72')) {
-    container = chatElement.parentElement;
+  if (!timeElement) {
+    console.warn('[ChatMarker] Could not find time element for indicator');
+    return;
   }
 
-  // Make sure the container is positioned
-  if (!container.style.position || container.style.position === 'static') {
-    container.style.position = 'relative';
+  // Check if indicator already exists in this specific location
+  const existingIndicator = timeElement.querySelector('.chatmarker-whatsapp-indicator');
+  if (existingIndicator) {
+    console.log('[ChatMarker] Indicator already exists, skipping');
+    return;
   }
 
-  const indicator = document.createElement('div');
+  // Create the indicator
+  const indicator = document.createElement('span');
   indicator.className = 'chatmarker-whatsapp-indicator';
   indicator.textContent = '⭐';
   indicator.style.cssText = `
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 18px;
-    z-index: 999;
-    pointer-events: none;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+    display: inline-block;
+    margin-right: 4px;
+    font-size: 14px;
     line-height: 1;
+    vertical-align: middle;
   `;
 
-  container.appendChild(indicator);
-  console.log('[ChatMarker] ✅ Star indicator added to container');
+  // Insert star before the time text
+  timeElement.insertBefore(indicator, timeElement.firstChild);
+  console.log('[ChatMarker] ✅ Star indicator added before time');
 }
 
 /**
