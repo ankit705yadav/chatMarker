@@ -33,7 +33,7 @@ A Chrome extension that lets you mark, label, add notes, and set reminders for i
 | **WhatsApp Web** | ✅ **Fully Implemented** | ⭐ (open chat) | ⭐ Inline before time | Mark, labels, notes, reminders |
 | **Reddit Chat** | ✅ **Fully Implemented** | ⭐ (list + open) | ⭐ Inline before time | Mark, labels, notes, reminders, shadow DOM |
 | **Facebook Messenger** | ✅ **Fully Implemented** | ⭐ (list only) | ⭐ Floating overlay | Mark, labels, notes, reminders |
-| Instagram | ⏳ Planned | - | - | Coming soon |
+| **Instagram** | ✅ **Fully Implemented** | ⭐ (list only) | ⭐ Floating overlay | Mark, labels, notes, reminders |
 | LinkedIn | ⏳ Planned | - | - | Coming soon |
 
 ---
@@ -77,6 +77,13 @@ A Chrome extension that lets you mark, label, add notes, and set reminders for i
 4. Select **ChatMarker → ⭐ Mark/Unmark Chat**
 5. A star indicator (⭐) appears in the chat list
 
+#### On Instagram:
+1. Open [Instagram](https://www.instagram.com/direct/inbox/)
+2. Navigate to your DM inbox
+3. Right-click **any chat in the chat list**
+4. Select **ChatMarker → ⭐ Mark/Unmark Chat**
+5. A star indicator (⭐) appears as a floating overlay in the chat list
+
 ### 2. Add Labels
 
 - Right-click → **ChatMarker → 🏷️ Add Labels**
@@ -118,7 +125,7 @@ chatMarker/
 │   ├── whatsapp.js           # ✅ WhatsApp Web (~1,100 lines)
 │   ├── reddit.js             # ✅ Reddit Chat (~1,400 lines)
 │   ├── messenger.js          # ✅ Facebook Messenger (~950 lines)
-│   ├── instagram.js          # ⏳ Placeholder
+│   ├── instagram.js          # ✅ Instagram (~1,145 lines)
 │   └── linkedin.js           # ⏳ Placeholder
 │
 ├── popup/                     # Extension sidebar UI
@@ -292,6 +299,7 @@ For complete testing checklist, see [docs/TEST.md](docs/TEST.md)
 - [x] WhatsApp Web integration (open chat marking)
 - [x] Reddit Chat integration (chat list marking with shadow DOM)
 - [x] Facebook Messenger integration (chat list marking)
+- [x] Instagram integration (chat list marking with floating overlay)
 - [x] Chat list indicators (inline and overlay styles)
 - [x] Labels, notes, reminders
 - [x] Unified dark mode support
@@ -299,7 +307,6 @@ For complete testing checklist, see [docs/TEST.md](docs/TEST.md)
 
 ### 🔄 In Progress
 - [ ] WhatsApp chat list marking (currently marks from open chat)
-- [ ] Instagram integration
 - [ ] LinkedIn integration
 
 ### 📋 Planned
@@ -345,4 +352,4 @@ MIT License - see LICENSE file for details
 **Last Updated**: 2025-11-02
 **Status**: Active Development 🚀
 
-**Platforms**: WhatsApp ✅ | Reddit ✅ | Facebook Messenger ✅ | Instagram ⏳ | LinkedIn ⏳
+**Platforms**: WhatsApp ✅ | Reddit ✅ | Facebook Messenger ✅ | Instagram ✅ | LinkedIn ⏳

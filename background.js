@@ -456,8 +456,8 @@ function capitalizeFirst(str) {
 function createContextMenus() {
   // Remove all existing menus first
   chrome.contextMenus.removeAll(() => {
-    // Main ChatMarker menu (for WhatsApp only - NOT Facebook or Reddit)
-    // Facebook and Reddit have their own menus with contexts: ['all'] below
+    // Main ChatMarker menu (for WhatsApp and LinkedIn only)
+    // Facebook, Reddit, and Instagram have their own menus with contexts: ['all'] below
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
@@ -465,7 +465,6 @@ function createContextMenus() {
       documentUrlPatterns: [
         'https://web.whatsapp.com/*',
         'https://www.messenger.com/*',
-        'https://www.instagram.com/*',
         'https://www.linkedin.com/*'
       ]
     });
@@ -679,7 +678,78 @@ function createContextMenus() {
       contexts: ['all']
     });
 
-    console.log('[ChatMarker] Chat-only context menus created (including Facebook and Reddit-specific menus)');
+    // ========== Instagram-specific context menus with 'all' contexts ==========
+    // Instagram needs 'all' contexts to work on chat list items
+
+    // Main ChatMarker menu for Instagram
+    chrome.contextMenus.create({
+      id: 'chatmarker-main-instagram',
+      title: 'ChatMarker',
+      contexts: ['all'],
+      documentUrlPatterns: [
+        'https://www.instagram.com/*'
+      ]
+    });
+
+    // Mark/Unmark chat (Instagram)
+    chrome.contextMenus.create({
+      id: 'chatmarker-mark-chat-instagram',
+      parentId: 'chatmarker-main-instagram',
+      title: '⭐ Mark/Unmark Chat',
+      contexts: ['all']
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-1-instagram',
+      parentId: 'chatmarker-main-instagram',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add labels submenu (Instagram)
+    chrome.contextMenus.create({
+      id: 'chatmarker-labels-instagram',
+      parentId: 'chatmarker-main-instagram',
+      title: '🏷️ Add Label',
+      contexts: ['all']
+    });
+
+    // Label options for Instagram (with unique IDs)
+    labels.forEach(label => {
+      chrome.contextMenus.create({
+        id: `chatmarker-label-${label.id}-instagram`,
+        parentId: 'chatmarker-labels-instagram',
+        title: `${label.emoji} ${label.name}`,
+        contexts: ['all']
+      });
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-2-instagram',
+      parentId: 'chatmarker-main-instagram',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add note (Instagram)
+    chrome.contextMenus.create({
+      id: 'chatmarker-note-instagram',
+      parentId: 'chatmarker-main-instagram',
+      title: '📝 Add/Edit Note',
+      contexts: ['all']
+    });
+
+    // Set reminder (Instagram)
+    chrome.contextMenus.create({
+      id: 'chatmarker-reminder-instagram',
+      parentId: 'chatmarker-main-instagram',
+      title: '⏰ Set/Edit Reminder',
+      contexts: ['all']
+    });
+
+    console.log('[ChatMarker] Chat-only context menus created (including Facebook, Reddit, and Instagram-specific menus)');
   });
 }
 
@@ -689,7 +759,7 @@ function createContextMenus() {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('[ChatMarker] Context menu clicked:', info.menuItemId);
 
-  // Normalize platform-specific menu IDs by removing '-facebook' or '-reddit' suffix
+  // Normalize platform-specific menu IDs by removing '-facebook', '-reddit', or '-instagram' suffix
   // This allows content scripts to handle both regular and platform-specific menus with same logic
   let menuItemId = info.menuItemId;
   if (menuItemId.endsWith('-facebook')) {
@@ -698,6 +768,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   } else if (menuItemId.endsWith('-reddit')) {
     menuItemId = menuItemId.replace('-reddit', '');
     console.log('[ChatMarker] Normalized Reddit menu ID:', menuItemId);
+  } else if (menuItemId.endsWith('-instagram')) {
+    menuItemId = menuItemId.replace('-instagram', '');
+    console.log('[ChatMarker] Normalized Instagram menu ID:', menuItemId);
   }
 
   // Send message to content script to handle the action

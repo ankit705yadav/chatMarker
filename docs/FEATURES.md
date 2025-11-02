@@ -1,8 +1,8 @@
 # ChatMarker - Feature Documentation
 
 **Version**: 1.0.0
-**Last Updated**: 2025-11-01
-**Status**: WhatsApp & Reddit Fully Implemented
+**Last Updated**: 2025-11-02
+**Status**: WhatsApp, Reddit, Facebook & Instagram Fully Implemented
 
 ---
 
@@ -31,9 +31,9 @@ ChatMarker uses a **chat-only marking system** where you mark entire conversatio
 
 **How it works:**
 - Right-click on page → **ChatMarker** → **⭐ Mark/Unmark Chat**
-- Current active chat is marked
-- Star (⭐) appears in chat list sidebar
-- Works on WhatsApp and Reddit
+- Current active chat is marked (WhatsApp) or chat list item (Reddit, Facebook, Instagram)
+- Star (⭐) appears in chat list
+- Works on WhatsApp, Reddit, Facebook Messenger, and Instagram
 
 ---
 
@@ -112,7 +112,7 @@ ChatMarker uses a **chat-only marking system** where you mark entire conversatio
 |---------|-------------|--------|
 | **Side Panel** | Persistent sidebar (Chrome 114+) | ✅ Implemented |
 | **Chat Cards** | Rich cards showing all chat details | ✅ Implemented |
-| **Platform Tabs** | Filter by All, WhatsApp, Reddit | ✅ Implemented |
+| **Platform Tabs** | Filter by All, Facebook, WhatsApp, Reddit, Instagram | ✅ Implemented |
 | **Live Search** | Real-time search as you type | ✅ Implemented |
 | **Label Filters** | Show/hide specific labels | ✅ Implemented |
 | **Date Filters** | Today, This Week, This Month, All Time | ✅ Implemented |
@@ -123,7 +123,7 @@ ChatMarker uses a **chat-only marking system** where you mark entire conversatio
 
 **Dashboard Features:**
 - **Search Bar** - Instant search across chat names and notes
-- **Platform Icons** - 🟢 WhatsApp, 🔴 Reddit
+- **Platform Icons** - 🟢 WhatsApp, 🔴 Reddit, 🔵 Facebook, 🟣 Instagram
 - **Chat Counts** - See how many marked chats per platform
 - **Result Counter** - "Showing X marked chats"
 - **Settings Modal** - Theme, export/import, clear data
@@ -159,6 +159,34 @@ ChatMarker uses a **chat-only marking system** where you mark entire conversatio
 
 **Reddit Technical Achievement:**
 Reddit uses Lit framework with Shadow DOM, which was re-rendering elements and removing inline indicators. We solved this by positioning indicators as absolute overlays on parent elements, preventing them from being removed during re-renders.
+
+#### Facebook Messenger
+| Feature | Status |
+|---------|--------|
+| Chat list marking | ✅ |
+| Chat name extraction | ✅ |
+| Chat list indicators (floating overlay) | ✅ |
+| Context menus with 'all' contexts | ✅ |
+| Inline modals | ✅ |
+| Toast notifications | ✅ |
+| Dark mode compatibility | ✅ |
+
+**Facebook Technical Notes:**
+Facebook requires `contexts: ['all']` for context menus to work on chat list items. Uses floating overlay indicator style positioned at top-right of chat items.
+
+#### Instagram
+| Feature | Status |
+|---------|--------|
+| Chat list marking | ✅ |
+| Chat name extraction (span[title]) | ✅ |
+| Chat list indicators (floating overlay) | ✅ |
+| Context menus with 'all' contexts | ✅ |
+| Inline modals | ✅ |
+| Toast notifications | ✅ |
+| Dark mode compatibility | ✅ |
+
+**Instagram Technical Notes:**
+Instagram uses `span[title]` for chat names. DOM traversal finds parent container by specific class combinations. No shadow DOM. Floating overlay indicator positioned at top-right with drop shadow for visibility.
 
 ---
 
@@ -231,20 +259,6 @@ Reddit uses Lit framework with Shadow DOM, which was re-rendering elements and r
 
 ## ⏳ Planned Features
 
-### Messenger Integration
-- [ ] Messenger chat detection
-- [ ] Chat marking on Messenger
-- [ ] Chat list indicators
-- [ ] Context menus
-- [ ] Full feature parity with WhatsApp/Reddit
-
-### Instagram Integration
-- [ ] Instagram DM detection
-- [ ] Chat marking on Instagram
-- [ ] Chat list indicators
-- [ ] Context menus
-- [ ] Full feature parity
-
 ### LinkedIn Integration
 - [ ] LinkedIn messaging detection
 - [ ] Chat marking on LinkedIn
@@ -299,13 +313,13 @@ These were considered but intentionally not included:
 | Notes | 6/6 | 1 | 7 |
 | Reminders | 6/6 | 1 | 7 |
 | Dashboard | 9/9 | 3 | 12 |
-| Platform Support | 2/5 | 3 | 5 |
+| Platform Support | 4/5 | 1 | 5 |
 | UI/UX | 8/8 | 0 | 8 |
 | Data Management | 6/6 | 2 | 8 |
 | Technical | 9/9 | 0 | 9 |
-| **Total** | **57** | **11** | **68** |
+| **Total** | **59** | **9** | **68** |
 
-**Implementation Rate**: 84% of planned features completed
+**Implementation Rate**: 87% of planned features completed
 
 ---
 
@@ -395,9 +409,9 @@ These were considered but intentionally not included:
 1. **Chrome 114+ Required** - Older versions not supported (Side Panel API requirement)
 2. **No Mobile Support** - Chrome extensions don't work on mobile
 3. **Local-Only Data** - No sync across devices
-4. **Platform-Specific** - Only WhatsApp Web and Reddit currently
-5. **Active Chat Required** - Must have chat open to mark (on Reddit)
-6. **Reddit Chat Only** - Post/comment marking not supported
+4. **Platform-Specific** - WhatsApp, Reddit, Facebook Messenger, Instagram (LinkedIn coming soon)
+5. **Active Chat Required** - Must have chat open to mark on WhatsApp only (others support chat list marking)
+6. **Chat-Only System** - Only chat conversations supported (not posts/comments/feeds)
 7. **No Bulk Operations** - Mark one chat at a time
 8. **English UI Only** - No localization yet
 

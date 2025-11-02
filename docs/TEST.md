@@ -2,8 +2,8 @@
 
 This document provides comprehensive testing instructions for all implemented features.
 
-**Current Version**: 1.0.0 (Day 1 Complete)
-**Last Updated**: 2025-10-30
+**Current Version**: 1.0.0 (4 Platforms Implemented)
+**Last Updated**: 2025-11-02
 
 ---
 
@@ -1090,19 +1090,149 @@ console.log('Marker count:', stats.markerCount); // Should be 0
 
 ---
 
-## Next Testing Phase (Day 2)
+## Platform Integration Testing
 
-After WhatsApp integration is implemented, test:
+### Instagram Integration Tests
+
+#### Test 11.1: Instagram Chat Detection
+**Steps**:
+1. Navigate to https://www.instagram.com/direct/inbox/
+2. Log in to Instagram (if needed)
+3. Open DevTools Console
+4. Observe chat list loads
+
+**Expected Results**:
+- ✅ Content script loads: `[ChatMarker] Instagram content script initialized`
+- ✅ No errors in console
+- ✅ Chat items are detected
+
+#### Test 11.2: Mark Instagram Chat from Chat List
+**Steps**:
+1. On Instagram DM inbox
+2. Right-click on **any chat in the chat list**
+3. Select **ChatMarker → ⭐ Mark/Unmark Chat**
+
+**Expected Results**:
+- ✅ Context menu appears with ChatMarker submenu
+- ✅ Toast notification: "Chat marked successfully"
+- ✅ Star indicator (⭐) appears as floating overlay (top-right of chat item)
+- ✅ Console shows: `[ChatMarker] Chat marked successfully`
+
+#### Test 11.3: Instagram Chat Name Extraction
+**Steps**:
+1. Right-click on a chat with known contact name
+2. Mark the chat
+3. Open ChatMarker sidebar
+
+**Expected Results**:
+- ✅ Chat appears in sidebar with correct name
+- ✅ Platform shows as "Instagram"
+- ✅ Chat name matches the contact's display name
+
+#### Test 11.4: Instagram Indicator Persistence
+**Steps**:
+1. Mark a chat on Instagram
+2. Verify star appears
+3. Scroll away from chat
+4. Scroll back to marked chat
+
+**Expected Results**:
+- ✅ Star indicator still visible
+- ✅ Position remains top-right overlay
+- ✅ No duplicate indicators
+
+#### Test 11.5: Instagram Labels
+**Steps**:
+1. Right-click on marked Instagram chat
+2. Select **ChatMarker → 🏷️ Add Label → 🔴 Urgent**
+3. Verify modal appears
+4. Select "Urgent" label
+5. Save
+
+**Expected Results**:
+- ✅ Label modal opens with dark theme
+- ✅ Label is saved
+- ✅ Toast notification appears
+- ✅ Label appears in sidebar chat card
+
+#### Test 11.6: Instagram Notes
+**Steps**:
+1. Right-click on Instagram chat
+2. Select **ChatMarker → 📝 Add/Edit Note**
+3. Type note: "Follow up about collaboration"
+4. Click "Save Note"
+
+**Expected Results**:
+- ✅ Note modal opens with dark theme
+- ✅ Note is saved successfully
+- ✅ Character counter shows (0/500)
+- ✅ Note appears in sidebar
+- ✅ Note persists after page reload
+
+#### Test 11.7: Instagram Reminders
+**Steps**:
+1. Right-click on Instagram chat
+2. Select **ChatMarker → ⏰ Set/Edit Reminder**
+3. Click "1 Hour" quick option
+4. Click "Set Reminder"
+
+**Expected Results**:
+- ✅ Reminder modal opens
+- ✅ Reminder is created
+- ✅ Toast notification appears
+- ✅ Reminder appears in sidebar
+- ✅ Badge shows reminder count
+
+#### Test 11.8: Instagram Context Menu (All Contexts)
+**Steps**:
+1. Right-click on different areas:
+   - Chat list item
+   - Chat list background
+   - Empty space in DM page
+
+**Expected Results**:
+- ✅ Context menu appears in all locations
+- ✅ All submenu items accessible
+- ✅ No duplicate "ChatMarker" entries
+
+#### Test 11.9: Instagram Page Reload Persistence
+**Steps**:
+1. Mark several Instagram chats
+2. Add labels and notes
+3. Hard reload page (Ctrl+Shift+R)
+
+**Expected Results**:
+- ✅ All marks persist
+- ✅ Indicators reappear after page loads
+- ✅ Labels and notes intact in sidebar
+- ✅ No errors in console
+
+#### Test 11.10: Instagram Sidebar Navigation
+**Steps**:
+1. Mark Instagram chat
+2. Open ChatMarker sidebar
+3. Click on Instagram chat card
+
+**Expected Results**:
+- ✅ Instagram tab opens/focuses
+- ✅ Navigates to /direct/inbox/
+- ✅ Correct chat is highlighted (if possible)
+
+---
+
+## Next Testing Phase
+
+After LinkedIn integration is implemented, test:
 - Message detection and marking
 - Mark icon injection
 - Right-click context menu
 - Mark/unmark toggle
 - Mark persistence across page reloads
 - Navigation from popup to message
-- Label and note UI in WhatsApp
+- Label and note UI
 
 ---
 
-**Testing Version**: 1.0 (Day 1 Complete)
-**Last Updated**: 2025-10-30
-**Status**: Foundation Testing Complete ✅
+**Testing Version**: 1.0 (4 Platforms Implemented)
+**Last Updated**: 2025-11-02
+**Status**: WhatsApp, Reddit, Facebook, Instagram Integration Complete ✅
