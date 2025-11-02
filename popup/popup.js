@@ -30,8 +30,6 @@ const activeRemindersCount = document.getElementById('activeRemindersCount');
 const labelCheckboxes = document.querySelectorAll('.label-checkbox');
 const dateRadios = document.querySelectorAll('input[name="dateFilter"]');
 const platformTabs = document.querySelectorAll('.platform-tab');
-const exportBtnSidebar = document.getElementById('exportBtnSidebar');
-const clearAllBtnSidebar = document.getElementById('clearAllBtnSidebar');
 
 // Modals
 const settingsModal = document.getElementById('settingsModal');
@@ -760,15 +758,6 @@ function setupEventListeners() {
     });
   });
 
-  // Sidebar action buttons
-  if (exportBtnSidebar) {
-    exportBtnSidebar.addEventListener('click', showExportModal);
-  }
-
-  if (clearAllBtnSidebar) {
-    clearAllBtnSidebar.addEventListener('click', clearAllData);
-  }
-
   // Theme toggle
   themeToggle.addEventListener('click', toggleTheme);
 
@@ -785,7 +774,7 @@ function setupEventListeners() {
   document.getElementById('importDataBtn')?.addEventListener('click', () => {
     document.getElementById('importFileInput').click();
   });
-  document.getElementById('importFileInput')?.addEventListener('change', importData);
+  document.getElementById('importFileInput')?.addEventListener('change', importDataFromFile);
   document.getElementById('clearAllBtn')?.addEventListener('click', clearAllData);
 
   // Note modal
@@ -1372,10 +1361,22 @@ function showExportModal() {
  */
 async function exportToJSON() {
   try {
-    const data = await getAllData();
+    // Get all data using the storage function
+    const data = await exportData();
+
+    // Count items
+    const chatMarkersCount = Object.keys(data.chatMarkers || {}).length;
+    const remindersCount = Object.keys(data.reminders || {}).length;
+
+    // Validate data before export
+    if (chatMarkersCount === 0 && remindersCount === 0) {
+      showToast('⚠️ No data to export');
+      return;
+    }
 
     // Create download
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1383,10 +1384,10 @@ async function exportToJSON() {
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast('✅ Exported as JSON');
+    showToast(`✅ Exported ${chatMarkersCount} chats, ${remindersCount} reminders`);
   } catch (error) {
     console.error('[ChatMarker Popup] Error exporting JSON:', error);
-    showToast('Error exporting data');
+    showToast('❌ Error exporting data');
   }
 }
 
@@ -1395,29 +1396,35 @@ async function exportToJSON() {
  */
 async function exportToCSV() {
   try {
-    const markers = await getMarkersArray();
+    const chatMarkers = await getChatMarkersArray();
+
+    // Check if there's data to export
+    if (chatMarkers.length === 0) {
+      showToast('⚠️ No chats to export');
+      return;
+    }
 
     // CSV headers
-    const headers = ['Date', 'Platform', 'Sender', 'Chat', 'Message', 'Labels', 'Notes', 'Reminder'];
+    const headers = ['Date', 'Platform', 'Chat Name', 'Labels', 'Notes', 'Reminder', 'Chat ID'];
 
     // CSV rows
-    const rows = markers.map(marker => {
+    const rows = chatMarkers.map(marker => {
       const date = new Date(marker.createdAt || marker.timestamp).toLocaleString();
       const platform = capitalizeFirst(marker.platform || 'unknown');
-      const sender = marker.sender || '';
-      const chat = marker.chatName || marker.chatId || '';
-      const message = (marker.messageText || '').replace(/"/g, '""'); // Escape quotes
+      const chatName = (marker.chatName || 'Unknown').replace(/"/g, '""'); // Escape quotes
       const labels = (marker.labels || []).join(', ');
-      const notes = (marker.notes || '').replace(/"/g, '""'); // Escape quotes
+      const notes = (marker.notes || '').replace(/"/g, '""').replace(/\n/g, ' '); // Escape quotes and remove newlines
 
       // Get reminder info
       let reminderText = '';
-      const reminder = Object.values(allReminders).find(r => r.messageId === marker.messageId && r.active);
+      const reminder = Object.values(allReminders).find(r => r.messageId === marker.chatMarkerId && r.active && !r.firedAt);
       if (reminder) {
         reminderText = new Date(reminder.reminderTime).toLocaleString();
       }
 
-      return [date, platform, sender, chat, `"${message}"`, labels, `"${notes}"`, reminderText];
+      const chatId = marker.chatId || '';
+
+      return [date, platform, `"${chatName}"`, labels, `"${notes}"`, reminderText, chatId];
     });
 
     // Combine headers and rows
@@ -1426,8 +1433,9 @@ async function exportToCSV() {
       ...rows.map(row => row.join(','))
     ].join('\n');
 
-    // Create download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Add BOM for UTF-8 encoding (helps Excel open files correctly)
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1435,10 +1443,10 @@ async function exportToCSV() {
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast(`✅ Exported ${markers.length} marks as CSV`);
+    showToast(`✅ Exported ${chatMarkers.length} chats as CSV`);
   } catch (error) {
     console.error('[ChatMarker Popup] Error exporting CSV:', error);
-    showToast('Error exporting CSV');
+    showToast('❌ Error exporting CSV');
   }
 }
 
@@ -1447,13 +1455,19 @@ async function exportToCSV() {
  */
 async function exportToMarkdown() {
   try {
-    const markers = await getMarkersArray();
+    const chatMarkers = await getChatMarkersArray();
 
-    // Group by label
+    // Check if there's data to export
+    if (chatMarkers.length === 0) {
+      showToast('⚠️ No chats to export');
+      return;
+    }
+
+    // Group by platform and label
     const grouped = {};
     const unlabeled = [];
 
-    markers.forEach(marker => {
+    chatMarkers.forEach(marker => {
       if (marker.labels && marker.labels.length > 0) {
         marker.labels.forEach(label => {
           if (!grouped[label]) grouped[label] = [];
@@ -1467,7 +1481,8 @@ async function exportToMarkdown() {
     // Build markdown
     let markdown = `# ChatMarker Export\n\n`;
     markdown += `**Exported:** ${new Date().toLocaleString()}  \n`;
-    markdown += `**Total Marks:** ${markers.length}\n\n`;
+    markdown += `**Total Chats:** ${chatMarkers.length}  \n`;
+    markdown += `**Active Reminders:** ${Object.values(allReminders).filter(r => r.active && !r.firedAt).length}\n\n`;
     markdown += `---\n\n`;
 
     // Export by label
@@ -1485,22 +1500,21 @@ async function exportToMarkdown() {
         markdown += `## ${labelEmoji[label]} ${capitalizeFirst(label)} (${grouped[label].length})\n\n`;
 
         grouped[label].forEach(marker => {
-          markdown += `### ${marker.sender || 'Unknown'}\n`;
-          markdown += `**Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
-          markdown += `**Platform:** ${capitalizeFirst(marker.platform)}  \n`;
-          markdown += `**Chat:** ${marker.chatName || marker.chatId || 'N/A'}  \n\n`;
-          markdown += `> ${marker.messageText || 'No text'}\n\n`;
+          markdown += `### ${marker.chatName || 'Unknown Chat'}\n\n`;
+          markdown += `- **Platform:** ${capitalizeFirst(marker.platform)}  \n`;
+          markdown += `- **Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
+          markdown += `- **Chat ID:** \`${marker.chatId || 'N/A'}\`  \n`;
 
-          if (marker.notes) {
-            markdown += `**Note:** ${marker.notes}\n\n`;
+          if (marker.notes && marker.notes.trim()) {
+            markdown += `\n**Note:**\n> ${marker.notes}\n`;
           }
 
-          const reminder = Object.values(allReminders).find(r => r.messageId === marker.messageId && r.active);
+          const reminder = Object.values(allReminders).find(r => r.messageId === marker.chatMarkerId && r.active && !r.firedAt);
           if (reminder) {
-            markdown += `⏰ **Reminder:** ${new Date(reminder.reminderTime).toLocaleString()}\n\n`;
+            markdown += `\n⏰ **Reminder:** ${new Date(reminder.reminderTime).toLocaleString()}\n`;
           }
 
-          markdown += `---\n\n`;
+          markdown += `\n---\n\n`;
         });
       }
     });
@@ -1510,16 +1524,15 @@ async function exportToMarkdown() {
       markdown += `## 📌 Unlabeled (${unlabeled.length})\n\n`;
 
       unlabeled.forEach(marker => {
-        markdown += `### ${marker.sender || 'Unknown'}\n`;
-        markdown += `**Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
-        markdown += `**Platform:** ${capitalizeFirst(marker.platform)}  \n\n`;
-        markdown += `> ${marker.messageText || 'No text'}\n\n`;
+        markdown += `### ${marker.chatName || 'Unknown Chat'}\n\n`;
+        markdown += `- **Platform:** ${capitalizeFirst(marker.platform)}  \n`;
+        markdown += `- **Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
 
-        if (marker.notes) {
-          markdown += `**Note:** ${marker.notes}\n\n`;
+        if (marker.notes && marker.notes.trim()) {
+          markdown += `\n**Note:**\n> ${marker.notes}\n`;
         }
 
-        markdown += `---\n\n`;
+        markdown += `\n---\n\n`;
       });
     }
 
@@ -1532,34 +1545,217 @@ async function exportToMarkdown() {
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast(`✅ Exported ${markers.length} marks as Markdown`);
+    showToast(`✅ Exported ${chatMarkers.length} chats as Markdown`);
   } catch (error) {
     console.error('[ChatMarker Popup] Error exporting Markdown:', error);
-    showToast('Error exporting Markdown');
+    showToast('❌ Error exporting Markdown');
   }
 }
 
 /**
  * Import data
  */
-async function importData(event) {
+async function importDataFromFile(event) {
   try {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Reset file input
+    event.target.value = '';
+
+    // Check file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      showToast('❌ File too large (max 10MB)');
+      return;
+    }
+
+    // Check file type
+    if (!file.name.endsWith('.json')) {
+      showToast('❌ Only JSON files are supported');
+      return;
+    }
+
+    // Show loading toast
+    showToast('⏳ Reading file...');
+
+    // Read file
     const text = await file.text();
-    const data = JSON.parse(text);
+    let importedData;
 
-    await importAllData(data);
+    try {
+      importedData = JSON.parse(text);
+    } catch (parseError) {
+      console.error('[ChatMarker Popup] JSON parse error:', parseError);
+      showToast('❌ Invalid JSON file');
+      return;
+    }
 
-    showToast('Data imported');
+    // Validate data structure
+    const validation = validateImportData(importedData);
+    if (!validation.valid) {
+      showToast(`❌ Invalid data: ${validation.error}`);
+      return;
+    }
+
+    // Count items to import
+    const chatMarkersCount = Object.keys(importedData.chatMarkers || {}).length;
+    const remindersCount = Object.keys(importedData.reminders || {}).length;
+
+    if (chatMarkersCount === 0 && remindersCount === 0) {
+      showToast('⚠️ No data found in file');
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = await showImportConfirmation({
+      chatMarkers: chatMarkersCount,
+      reminders: remindersCount,
+      exportDate: importedData.exportedAt,
+      version: importedData.version
+    });
+
+    if (!confirmed) {
+      showToast('Import cancelled');
+      return;
+    }
+
+    // Import data using the storage function
+    showToast('⏳ Importing data...');
+    await importData(importedData);
+
+    showToast(`✅ Imported ${chatMarkersCount} chats, ${remindersCount} reminders`);
 
     // Reload markers
     await loadMarkers();
   } catch (error) {
     console.error('[ChatMarker Popup] Error importing data:', error);
-    showToast('Error importing data');
+    showToast('❌ Error importing data');
   }
+}
+
+/**
+ * Validate import data structure
+ */
+function validateImportData(data) {
+  // Check if data is an object
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: 'Data must be an object' };
+  }
+
+  // Check for version field
+  if (!data.version) {
+    return { valid: false, error: 'Missing version field' };
+  }
+
+  // Check for required fields
+  if (!data.chatMarkers && !data.reminders && !data.settings && !data.markers) {
+    return { valid: false, error: 'No valid data found' };
+  }
+
+  // Validate chatMarkers structure if present
+  if (data.chatMarkers) {
+    if (typeof data.chatMarkers !== 'object') {
+      return { valid: false, error: 'chatMarkers must be an object' };
+    }
+
+    // Validate a sample of chatMarkers
+    const sampleMarkers = Object.values(data.chatMarkers).slice(0, 5);
+    for (const marker of sampleMarkers) {
+      if (!marker.chatMarkerId || !marker.platform) {
+        return { valid: false, error: 'Invalid chatMarker structure' };
+      }
+    }
+  }
+
+  // Validate reminders structure if present
+  if (data.reminders) {
+    if (typeof data.reminders !== 'object') {
+      return { valid: false, error: 'reminders must be an object' };
+    }
+
+    // Validate a sample of reminders
+    const sampleReminders = Object.values(data.reminders).slice(0, 5);
+    for (const reminder of sampleReminders) {
+      if (!reminder.reminderId || typeof reminder.reminderTime !== 'number') {
+        return { valid: false, error: 'Invalid reminder structure' };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Show import confirmation dialog
+ */
+async function showImportConfirmation(stats) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+
+    const exportDateStr = stats.exportDate
+      ? new Date(stats.exportDate).toLocaleString()
+      : 'Unknown';
+
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+          <h2>Confirm Import</h2>
+          <button class="modal-close" id="closeImportConfirm">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="padding: 16px; background: var(--color-surface); border-radius: 8px; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 16px;">Import Summary</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--color-text-secondary);">Chats:</span>
+                <strong>${stats.chatMarkers}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--color-text-secondary);">Reminders:</span>
+                <strong>${stats.reminders}</strong>
+              </div>
+              ${stats.exportDate ? `
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--color-text-secondary);">Exported:</span>
+                  <strong style="font-size: 12px;">${exportDateStr}</strong>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          <div style="padding: 12px; background: var(--color-warning-bg, #FFF3CD); border-left: 4px solid var(--color-warning, #FFC107); border-radius: 4px; margin-bottom: 16px;">
+            <strong style="color: var(--color-warning-text, #856404);">⚠️ Important:</strong>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--color-warning-text, #856404);">
+              Importing will merge with existing data. Duplicate IDs will be overwritten.
+            </p>
+          </div>
+          <p style="margin: 0; color: var(--color-text-secondary); font-size: 14px;">
+            Do you want to proceed with the import?
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="cancelImport">Cancel</button>
+          <button class="btn-primary" id="confirmImport">Import Data</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeModal = (result) => {
+      modal.remove();
+      resolve(result);
+    };
+
+    modal.querySelector('#closeImportConfirm').addEventListener('click', () => closeModal(false));
+    modal.querySelector('#cancelImport').addEventListener('click', () => closeModal(false));
+    modal.querySelector('#confirmImport').addEventListener('click', () => closeModal(true));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal(false);
+    });
+  });
 }
 
 /**
