@@ -456,16 +456,15 @@ function capitalizeFirst(str) {
 function createContextMenus() {
   // Remove all existing menus first
   chrome.contextMenus.removeAll(() => {
-    // Main ChatMarker menu (for WhatsApp and LinkedIn only)
-    // Facebook, Reddit, and Instagram have their own menus with contexts: ['all'] below
+    // Main ChatMarker menu (for WhatsApp and Messenger only)
+    // Facebook, Reddit, Instagram, and LinkedIn have their own menus with contexts: ['all'] below
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
       contexts: ['page'],
       documentUrlPatterns: [
         'https://web.whatsapp.com/*',
-        'https://www.messenger.com/*',
-        'https://www.linkedin.com/*'
+        'https://www.messenger.com/*'
       ]
     });
 
