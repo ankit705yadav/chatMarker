@@ -456,7 +456,8 @@ function capitalizeFirst(str) {
 function createContextMenus() {
   // Remove all existing menus first
   chrome.contextMenus.removeAll(() => {
-    // Main ChatMarker menu
+    // Main ChatMarker menu (for WhatsApp, Reddit, etc. - NOT Facebook)
+    // Facebook has its own menu with contexts: ['all'] below
     chrome.contextMenus.create({
       id: 'chatmarker-main',
       title: 'ChatMarker',
@@ -464,7 +465,6 @@ function createContextMenus() {
       documentUrlPatterns: [
         'https://web.whatsapp.com/*',
         'https://www.messenger.com/*',
-        'https://www.facebook.com/*',
         'https://www.instagram.com/*',
         'https://www.linkedin.com/*',
         'https://www.reddit.com/*',
@@ -538,7 +538,78 @@ function createContextMenus() {
       contexts: ['page']
     });
 
-    console.log('[ChatMarker] Chat-only context menus created');
+    // ========== Facebook-specific context menus with 'all' contexts ==========
+    // Facebook needs 'all' contexts to work on chat list items
+
+    // Main ChatMarker menu for Facebook
+    chrome.contextMenus.create({
+      id: 'chatmarker-main-facebook',
+      title: 'ChatMarker',
+      contexts: ['all'],
+      documentUrlPatterns: [
+        'https://www.facebook.com/*'
+      ]
+    });
+
+    // Mark/Unmark chat
+    chrome.contextMenus.create({
+      id: 'chatmarker-mark-chat',
+      parentId: 'chatmarker-main-facebook',
+      title: '⭐ Mark/Unmark Chat',
+      contexts: ['all']
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-1-facebook',
+      parentId: 'chatmarker-main-facebook',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add labels submenu
+    chrome.contextMenus.create({
+      id: 'chatmarker-labels-facebook',
+      parentId: 'chatmarker-main-facebook',
+      title: '🏷️ Add Label',
+      contexts: ['all']
+    });
+
+    // Label options for Facebook
+    labels.forEach(label => {
+      chrome.contextMenus.create({
+        id: `chatmarker-label-${label.id}`,
+        parentId: 'chatmarker-labels-facebook',
+        title: `${label.emoji} ${label.name}`,
+        contexts: ['all']
+      });
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'chatmarker-separator-2-facebook',
+      parentId: 'chatmarker-main-facebook',
+      type: 'separator',
+      contexts: ['all']
+    });
+
+    // Add note
+    chrome.contextMenus.create({
+      id: 'chatmarker-note',
+      parentId: 'chatmarker-main-facebook',
+      title: '📝 Add/Edit Note',
+      contexts: ['all']
+    });
+
+    // Set reminder
+    chrome.contextMenus.create({
+      id: 'chatmarker-reminder',
+      parentId: 'chatmarker-main-facebook',
+      title: '⏰ Set/Edit Reminder',
+      contexts: ['all']
+    });
+
+    console.log('[ChatMarker] Chat-only context menus created (including Facebook-specific menus)');
   });
 }
 
