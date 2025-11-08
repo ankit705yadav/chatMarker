@@ -257,6 +257,12 @@ async function saveChatMarker(chatMarker) {
     await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: chatMarkers });
 
     console.log('[ChatMarker] Chat marker saved:', chatMarker.chatMarkerId);
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return chatMarker;
   } catch (error) {
     console.error('[ChatMarker] Error saving chat marker:', error);
@@ -354,6 +360,12 @@ async function updateChatMarker(chatMarkerId, updates) {
     await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: chatMarkers });
 
     console.log('[ChatMarker] Chat marker updated:', chatMarkerId);
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return updated;
   } catch (error) {
     console.error('[ChatMarker] Error updating chat marker:', error);
@@ -378,6 +390,12 @@ async function deleteChatMarker(chatMarkerId) {
     await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: chatMarkers });
 
     console.log('[ChatMarker] Chat marker deleted:', chatMarkerId);
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return true;
   } catch (error) {
     console.error('[ChatMarker] Error deleting chat marker:', error);
@@ -393,6 +411,12 @@ async function clearAllChatMarkers() {
   try {
     await chrome.storage.local.set({ [STORAGE_KEYS.CHAT_MARKERS]: {} });
     console.log('[ChatMarker] All chat markers cleared');
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return true;
   } catch (error) {
     console.error('[ChatMarker] Error clearing chat markers:', error);
@@ -419,6 +443,12 @@ async function saveReminder(reminderData) {
     await chrome.storage.local.set({ [STORAGE_KEYS.REMINDERS]: reminders });
 
     console.log('[ChatMarker] Reminder saved:', reminderData.reminderId);
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return reminderData;
   } catch (error) {
     console.error('[ChatMarker] Error saving reminder:', error);
@@ -489,6 +519,12 @@ async function deleteReminder(reminderId) {
     await chrome.storage.local.set({ [STORAGE_KEYS.REMINDERS]: reminders });
 
     console.log('[ChatMarker] Reminder deleted:', reminderId);
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return true;
   } catch (error) {
     console.error('[ChatMarker] Error deleting reminder:', error);
@@ -504,6 +540,11 @@ async function clearAllReminders() {
   try {
     await chrome.storage.local.set({ [STORAGE_KEYS.REMINDERS]: {} });
     console.log('[ChatMarker] All reminders cleared');
+
+    // Trigger auto-sync to cloud
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
   } catch (error) {
     console.error('[ChatMarker] Error clearing reminders:', error);
     throw error;

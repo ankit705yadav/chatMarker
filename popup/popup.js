@@ -18,7 +18,6 @@ const messageList = document.getElementById('messageList');
 const loadingState = document.getElementById('loadingState');
 const emptyState = document.getElementById('emptyState');
 const noResultsState = document.getElementById('noResultsState');
-const resultCount = document.getElementById('resultCount');
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
 const statsBtn = document.getElementById('statsBtn');
@@ -237,14 +236,12 @@ function displayChatMarkers() {
     const emptyText = document.querySelector('#emptyState .empty-text');
     if (emptyTitle) emptyTitle.textContent = 'No marked chats yet';
     if (emptyText) emptyText.innerHTML = 'Right-click anywhere on a chat in WhatsApp or Reddit<br>and select "Mark This Chat"';
-    resultCount.textContent = 'No marked chats';
     return;
   }
 
   if (filteredChatMarkers.length === 0) {
     // No results after filtering
     noResultsState.style.display = 'flex';
-    resultCount.textContent = `0 of ${allChatMarkers.length} marked chats`;
     return;
   }
 
@@ -253,9 +250,6 @@ function displayChatMarkers() {
     const card = createChatCard(chatMarker);
     messageList.appendChild(card);
   });
-
-  // Update result count
-  resultCount.textContent = `Showing ${filteredChatMarkers.length} of ${allChatMarkers.length} marked chat${allChatMarkers.length === 1 ? '' : 's'}`;
 }
 
 /**
@@ -760,6 +754,49 @@ function setupEventListeners() {
 
   // Theme toggle
   themeToggle.addEventListener('click', toggleTheme);
+
+  // Sign out
+  const signOutBtn = document.getElementById('signOutBtn');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to sign out?')) {
+        const result = await signOut();
+        if (result.success) {
+          console.log('[ChatMarker] User signed out successfully');
+        }
+      }
+    });
+  }
+
+  // Manual sync buttons
+  const syncUploadBtn = document.getElementById('syncUploadBtn');
+  const syncDownloadBtn = document.getElementById('syncDownloadBtn');
+
+  if (syncUploadBtn) {
+    syncUploadBtn.addEventListener('click', async () => {
+      try {
+        console.log('[ChatMarker] Manual upload triggered');
+        await syncToCloud();
+      } catch (error) {
+        console.error('[ChatMarker] Manual upload failed:', error);
+        showToast('❌ Upload failed');
+      }
+    });
+  }
+
+  if (syncDownloadBtn) {
+    syncDownloadBtn.addEventListener('click', async () => {
+      if (confirm('⚠️ Download from cloud will replace your local data. Continue?')) {
+        try {
+          console.log('[ChatMarker] Manual download triggered');
+          await syncFromCloud();
+        } catch (error) {
+          console.error('[ChatMarker] Manual download failed:', error);
+          showToast('❌ Download failed');
+        }
+      }
+    });
+  }
 
   // Statistics
   statsBtn.addEventListener('click', showStatistics);

@@ -19,7 +19,9 @@
     "https://www.instagram.com/*",
     "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
-    "https://old.reddit.com/*"
+    "https://old.reddit.com/*",
+    "https://*.firebaseapp.com/*",
+    "https://*.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -61,5 +63,14 @@
   },
   "side_panel": {
     "default_path": "popup/popup.html"
-  }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://*.firebaseapp.com;"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/*.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

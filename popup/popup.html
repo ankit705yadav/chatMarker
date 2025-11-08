@@ -5,8 +5,71 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChatMarker</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="auth.css">
 </head>
 <body>
+  <!-- Authentication Container -->
+  <div id="authContainer" class="auth-container" style="display: none;">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">⭐</div>
+        <h1 class="auth-title"><span class="chat">Chat</span><span class="marker">Marker</span></h1>
+        <p class="auth-subtitle">Mark, organize, and sync your important chats</p>
+      </div>
+
+      <!-- Error/Success Messages -->
+      <div id="authError" class="auth-message error-message" style="display: none;"></div>
+      <div id="authSuccess" class="auth-message success-message" style="display: none;"></div>
+
+      <!-- Tab Navigation -->
+      <div class="auth-tabs">
+        <button id="signInTab" class="auth-tab active">Sign In</button>
+        <button id="signUpTab" class="auth-tab">Sign Up</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="signInForm" class="auth-form">
+        <div class="form-group">
+          <label for="signInEmail" class="form-label">Email</label>
+          <input type="email" id="signInEmail" class="form-input" placeholder="your@email.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="signInPassword" class="form-label">Password</label>
+          <input type="password" id="signInPassword" class="form-input" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn btn-auth-primary">
+          <span class="btn-text">Sign In</span>
+          <span class="btn-loader" style="display: none;">Signing in...</span>
+        </button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signUpForm" class="auth-form" style="display: none;">
+        <div class="form-group">
+          <label for="signUpEmail" class="form-label">Email</label>
+          <input type="email" id="signUpEmail" class="form-input" placeholder="your@email.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="signUpPassword" class="form-label">Password</label>
+          <input type="password" id="signUpPassword" class="form-input" placeholder="At least 6 characters" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="signUpPasswordConfirm" class="form-label">Confirm Password</label>
+          <input type="password" id="signUpPasswordConfirm" class="form-input" placeholder="••••••••" required minlength="6">
+        </div>
+
+        <button type="submit" class="btn btn-auth-primary">
+          <span class="btn-text">Sign Up</span>
+          <span class="btn-loader" style="display: none;">Creating account...</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="header">
     <div class="header-left">
@@ -18,6 +81,13 @@
       </div>
     </div>
     <div class="header-right">
+      <span id="syncStatus" class="sync-status" style="display: none;"></span>
+      <button class="icon-button" id="syncUploadBtn" title="Upload to Cloud" style="display: none;">
+        <span>⬆️</span>
+      </button>
+      <button class="icon-button" id="syncDownloadBtn" title="Download from Cloud" style="display: none;">
+        <span>⬇️</span>
+      </button>
       <button class="icon-button" id="statsBtn" title="Statistics">
         <span>📊</span>
       </button>
@@ -26,6 +96,9 @@
       </button>
       <button class="icon-button" id="themeToggle" title="Toggle Dark Mode">
         <span id="themeIcon">🌙</span>
+      </button>
+      <button class="icon-button" id="signOutBtn" title="Sign Out" style="display: none;">
+        <span>🚪</span>
       </button>
     </div>
   </header>
@@ -169,13 +242,6 @@
         <!-- Message Cards will be inserted here -->
         <div class="message-list" id="messageList"></div>
       </div>
-
-      <!-- Footer -->
-      <footer class="footer" id="footer">
-        <div class="footer-text" id="footerText">
-          <span id="resultCount">Showing 0 marked messages</span>
-        </div>
-      </footer>
     </main>
   </div>
 
@@ -327,6 +393,22 @@
     <span id="toastMessage"></span>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="../lib/firebase-app-compat.js"></script>
+  <script src="../lib/firebase-auth-compat.js"></script>
+  <script src="../lib/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Configuration -->
+  <script src="../firebase-config.js"></script>
+
+  <!-- Authentication -->
+  <script src="auth.js"></script>
+  <script src="auth-ui.js"></script>
+
+  <!-- Cloud Sync -->
+  <script src="../firestore-sync.js"></script>
+
+  <!-- App Scripts -->
   <script src="../utils/storage.js"></script>
   <script src="popup.js"></script>
 </body>

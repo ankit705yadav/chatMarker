@@ -445,6 +445,17 @@ body {
   background-color: var(--color-surface);
 }
 
+/* Sync Status */
+.sync-status {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  padding: 4px 8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  margin-right: var(--space-sm);
+  white-space: nowrap;
+}
+
 /* Search Container */
 .search-container {
   padding: var(--space-base);
@@ -916,37 +927,6 @@ body.dark-mode .reminder-preview-text {
 
 .message-icon {
   font-size: 14px;
-}
-
-/* Footer */
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md) var(--space-base);
-  border-top: 1px solid var(--color-border);
-  background-color: var(--color-background);
-  min-height: 48px;
-}
-
-.footer-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.footer-link {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.footer-link:hover {
-  color: var(--color-primary-dark);
-  text-decoration: underline;
 }
 
 /* Buttons */
