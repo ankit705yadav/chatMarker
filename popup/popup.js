@@ -57,6 +57,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check for pending actions (from context menu)
   await checkPendingActions();
 
+  // Listen for storage changes to update in real-time
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local') {
+      // Check if chatMarkers or reminders changed
+      if (changes.chatMarkers || changes.reminders) {
+        console.log('[ChatMarker Popup] Storage changed, reloading markers...');
+        loadMarkers();
+      }
+    }
+  });
+
   console.log('[ChatMarker Popup] Initialized');
 });
 
