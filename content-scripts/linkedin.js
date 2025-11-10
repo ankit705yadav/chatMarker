@@ -560,7 +560,12 @@ function addChatListIndicator(chatElement, chatMarker) {
   if (chatMarker.labels && chatMarker.labels.length > 0) {
     // Show label emojis instead of star
     displayContent = chatMarker.labels.map(label => labelEmojis[label] || '🏷️').join('');
-    titleText = `Marked with: ${chatMarker.labels.join(', ')}`;
+    titleText = `Labels: ${chatMarker.labels.join(', ')}`;
+  }
+
+  // Add notes to tooltip if present
+  if (chatMarker.notes && chatMarker.notes.trim()) {
+    titleText += `\n\nNote: ${chatMarker.notes}`;
   }
 
   // Create indicator
@@ -573,6 +578,7 @@ function addChatListIndicator(chatElement, chatMarker) {
     font-size: 14px;
     line-height: 1;
     display: inline-block;
+    cursor: pointer;
   `;
 
   // Insert before time element

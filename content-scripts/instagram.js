@@ -1092,7 +1092,12 @@ function addChatListIndicator(chatElement, chatMarker) {
     displayContent = chatMarker.labels
       .map((label) => labelEmojis[label] || "🏷️")
       .join("");
-    titleText = `Marked with: ${chatMarker.labels.join(", ")}`;
+    titleText = `Labels: ${chatMarker.labels.join(", ")}`;
+  }
+
+  // Add notes to tooltip if present
+  if (chatMarker.notes && chatMarker.notes.trim()) {
+    titleText += `\n\nNote: ${chatMarker.notes}`;
   }
 
   // Create indicator absolutely positioned at top-right edge
@@ -1107,7 +1112,8 @@ function addChatListIndicator(chatElement, chatMarker) {
     font-size: 14px;
     line-height: 1;
     z-index: 10;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
   `;
 
   // Append to chat element

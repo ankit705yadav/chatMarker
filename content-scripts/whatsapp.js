@@ -1091,21 +1091,31 @@ function addChatListIndicator(chatElement, chatMarker) {
 
   // Determine what to display
   let displayContent = '⭐'; // Default star
+  let tooltipText = 'Marked chat';
+
   if (chatMarker.labels && chatMarker.labels.length > 0) {
     // Show label emojis instead of star
     displayContent = chatMarker.labels.map(label => labelEmojis[label] || '🏷️').join('');
+    tooltipText = `Labels: ${chatMarker.labels.join(', ')}`;
+  }
+
+  // Add notes to tooltip if present
+  if (chatMarker.notes && chatMarker.notes.trim()) {
+    tooltipText += `\n\nNote: ${chatMarker.notes}`;
   }
 
   // Create the indicator
   const indicator = document.createElement('span');
   indicator.className = 'chatmarker-whatsapp-indicator';
   indicator.textContent = displayContent;
+  indicator.title = tooltipText;
   indicator.style.cssText = `
     display: inline-block;
     margin-right: 4px;
     font-size: 13px;
     line-height: 1.2;
     vertical-align: text-bottom;
+    cursor: pointer;
   `;
 
   // Insert indicator before the time text
