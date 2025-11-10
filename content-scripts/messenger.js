@@ -303,7 +303,11 @@ function updateChatListIndicators() {
 
           if (isMarked && !existingIndicator) {
             console.log(`[ChatMarker] Adding indicator to "${name}"`);
-            addChatListIndicator(element);
+            addChatListIndicator(element, matchedMarker);
+          } else if (isMarked && existingIndicator) {
+            // Update existing indicator in case labels changed
+            existingIndicator.remove();
+            addChatListIndicator(element, matchedMarker);
           } else if (!isMarked && existingIndicator) {
             console.log(`[ChatMarker] Removing indicator from "${name}"`);
             existingIndicator.remove();
@@ -315,15 +319,35 @@ function updateChatListIndicators() {
 }
 
 /**
- * Add star indicator to a chat list item
+ * Add indicator (star or labels) to a chat list item
  */
-function addChatListIndicator(chatElement) {
+function addChatListIndicator(chatElement, chatMarker) {
   // Use overlay positioning (like Reddit) to prevent Facebook from removing it
   chatElement.style.position = 'relative';
 
+  // Label emoji mapping
+  const labelEmojis = {
+    urgent: '🔴',
+    important: '🟡',
+    completed: '🟢',
+    followup: '🔵',
+    question: '🟣'
+  };
+
+  // Determine what to display
+  let displayContent = '⭐'; // Default star
+  let titleText = 'Marked chat';
+
+  if (chatMarker && chatMarker.labels && chatMarker.labels.length > 0) {
+    // Show label emojis instead of star
+    displayContent = chatMarker.labels.map(label => labelEmojis[label] || '🏷️').join('');
+    titleText = `Marked with: ${chatMarker.labels.join(', ')}`;
+  }
+
   const indicator = document.createElement('div');
   indicator.className = 'chatmarker-facebook-indicator';
-  indicator.textContent = '⭐';
+  indicator.textContent = displayContent;
+  indicator.title = titleText;
   indicator.style.cssText = `
     position: absolute;
     top: 8px;

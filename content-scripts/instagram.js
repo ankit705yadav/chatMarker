@@ -23,9 +23,11 @@ function isExtensionContextValid() {
  */
 function safeSendMessage(message, callback) {
   if (!isExtensionContextValid()) {
-    console.warn('[ChatMarker] Extension context invalidated - page reload recommended');
+    console.warn(
+      "[ChatMarker] Extension context invalidated - page reload recommended",
+    );
     if (callback) {
-      callback({ success: false, error: 'Extension context invalidated' });
+      callback({ success: false, error: "Extension context invalidated" });
     }
     return;
   }
@@ -33,7 +35,10 @@ function safeSendMessage(message, callback) {
   try {
     chrome.runtime.sendMessage(message, (response) => {
       if (chrome.runtime.lastError) {
-        console.warn('[ChatMarker] Message send error:', chrome.runtime.lastError.message);
+        console.warn(
+          "[ChatMarker] Message send error:",
+          chrome.runtime.lastError.message,
+        );
         if (callback) {
           callback({ success: false, error: chrome.runtime.lastError.message });
         }
@@ -44,7 +49,7 @@ function safeSendMessage(message, callback) {
       }
     });
   } catch (error) {
-    console.error('[ChatMarker] Failed to send message:', error);
+    console.error("[ChatMarker] Failed to send message:", error);
     if (callback) {
       callback({ success: false, error: error.message });
     }
@@ -57,19 +62,19 @@ function safeSendMessage(message, callback) {
 function getThemeColors() {
   // Always return dark theme colors matching the extension side-panel
   return {
-    modalBg: '#1E293B',        // --color-surface
-    textPrimary: '#F1F5F9',    // --color-text-primary
-    textSecondary: '#94A3B8',  // --color-text-secondary
-    border: '#334155',         // --color-border
-    infoBg: '#334155',         // --color-border (for info boxes)
-    infoText: '#94A3B8',       // --color-text-secondary
-    inputBg: '#0F172A',        // --color-background
-    inputBorder: '#334155',    // --color-border
-    buttonSecondaryBg: '#334155',   // --color-border
-    buttonSecondaryText: '#F1F5F9', // --color-text-primary
-    buttonSecondaryBorder: '#334155', // --color-border
-    primary: '#6366F1',        // --color-primary
-    primaryDark: '#4338CA',    // --color-primary-dark
+    modalBg: "#1E293B", // --color-surface
+    textPrimary: "#F1F5F9", // --color-text-primary
+    textSecondary: "#94A3B8", // --color-text-secondary
+    border: "#334155", // --color-border
+    infoBg: "#334155", // --color-border (for info boxes)
+    infoText: "#94A3B8", // --color-text-secondary
+    inputBg: "#0F172A", // --color-background
+    inputBorder: "#334155", // --color-border
+    buttonSecondaryBg: "#334155", // --color-border
+    buttonSecondaryText: "#F1F5F9", // --color-text-primary
+    buttonSecondaryBorder: "#334155", // --color-border
+    primary: "#6366F1", // --color-primary
+    primaryDark: "#4338CA", // --color-primary-dark
   };
 }
 
@@ -79,12 +84,14 @@ function getThemeColors() {
 async function init() {
   if (isInitialized) return;
 
-  console.log('[ChatMarker] Initializing Instagram integration (chat-only mode)...');
+  console.log(
+    "[ChatMarker] Initializing Instagram integration (chat-only mode)...",
+  );
 
   try {
     // Wait for Instagram to load
-    await waitForElement('body', 5000);
-    console.log('[ChatMarker] Instagram loaded');
+    await waitForElement("body", 5000);
+    console.log("[ChatMarker] Instagram loaded");
 
     // Listen for messages from background
     chrome.runtime.onMessage.addListener(handleBackgroundMessage);
@@ -98,11 +105,13 @@ async function init() {
     }, 2000);
 
     isInitialized = true;
-    console.log('[ChatMarker] Instagram integration ready (chat-only mode)');
-    console.log('[ChatMarker] Right-click any chat in the list and select "ChatMarker" to mark');
+    console.log("[ChatMarker] Instagram integration ready (chat-only mode)");
+    console.log(
+      '[ChatMarker] Right-click any chat in the list and select "ChatMarker" to mark',
+    );
   } catch (error) {
-    console.error('[ChatMarker] Initialization failed:', error);
-    console.log('[ChatMarker] Will retry initialization in 5 seconds...');
+    console.error("[ChatMarker] Initialization failed:", error);
+    console.log("[ChatMarker] Will retry initialization in 5 seconds...");
 
     // Retry after delay
     setTimeout(() => {
@@ -133,7 +142,7 @@ function waitForElement(selector, timeout = 5000) {
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
     });
 
     setTimeout(() => {
@@ -147,10 +156,14 @@ function waitForElement(selector, timeout = 5000) {
  * Capture right-click events to know which chat list item was clicked
  */
 function setupContextMenuCapture() {
-  document.addEventListener('contextmenu', (e) => {
-    lastRightClickedElement = e.target;
-    console.log('[ChatMarker] Right-clicked element:', e.target);
-  }, true);
+  document.addEventListener(
+    "contextmenu",
+    (e) => {
+      lastRightClickedElement = e.target;
+      console.log("[ChatMarker] Right-clicked element:", e.target);
+    },
+    true,
+  );
 }
 
 /**
@@ -158,11 +171,14 @@ function setupContextMenuCapture() {
  */
 function getChatNameFromRightClick() {
   if (!lastRightClickedElement) {
-    console.log('[ChatMarker] No lastRightClickedElement');
+    console.log("[ChatMarker] No lastRightClickedElement");
     return null;
   }
 
-  console.log('[ChatMarker] Extracting from right-clicked element:', lastRightClickedElement);
+  console.log(
+    "[ChatMarker] Extracting from right-clicked element:",
+    lastRightClickedElement,
+  );
 
   // Traverse up to find the chat list item
   let element = lastRightClickedElement;
@@ -172,11 +188,14 @@ function getChatNameFromRightClick() {
   while (element && depth < maxDepth) {
     // Look for span with title attribute (contains chat name)
     if (element.querySelectorAll) {
-      const titleSpan = element.querySelector('span[title]');
+      const titleSpan = element.querySelector("span[title]");
       if (titleSpan) {
-        const chatName = titleSpan.getAttribute('title');
+        const chatName = titleSpan.getAttribute("title");
         if (chatName && chatName.length > 0) {
-          console.log('[ChatMarker] ✅ Extracted chat name from title span:', chatName);
+          console.log(
+            "[ChatMarker] ✅ Extracted chat name from title span:",
+            chatName,
+          );
           return chatName;
         }
       }
@@ -186,7 +205,7 @@ function getChatNameFromRightClick() {
     depth++;
   }
 
-  console.log('[ChatMarker] ❌ Could not extract chat name from right-click');
+  console.log("[ChatMarker] ❌ Could not extract chat name from right-click");
   return null;
 }
 
@@ -195,19 +214,19 @@ function getChatNameFromRightClick() {
  */
 function getCurrentChatId() {
   const chatName = getChatName();
-  if (chatName && chatName !== 'Unknown Chat') {
-    const chatId = `instagram_${chatName.replace(/\s+/g, '_')}`;
-    console.log('[ChatMarker] Generated chat ID:', chatId);
+  if (chatName && chatName !== "Unknown Chat") {
+    const chatId = `instagram_${chatName.replace(/\s+/g, "_")}`;
+    console.log("[ChatMarker] Generated chat ID:", chatId);
     return chatId;
   }
-  return 'unknown';
+  return "unknown";
 }
 
 /**
  * Extract chat name
  */
 function getChatName() {
-  console.log('[ChatMarker] Attempting to get chat name...');
+  console.log("[ChatMarker] Attempting to get chat name...");
 
   // Try to get from right-clicked chat list item
   const nameFromRightClick = getChatNameFromRightClick();
@@ -215,41 +234,41 @@ function getChatName() {
     return nameFromRightClick;
   }
 
-  console.warn('[ChatMarker] Could not find chat name');
-  return 'Unknown Chat';
+  console.warn("[ChatMarker] Could not find chat name");
+  return "Unknown Chat";
 }
 
 /**
  * Handle context menu actions - Chat-only version
  */
 function handleContextMenuAction(menuItemId, selectionText) {
-  console.log('[ChatMarker] Context menu action:', menuItemId);
+  console.log("[ChatMarker] Context menu action:", menuItemId);
 
   // All actions are chat-level only
   switch (menuItemId) {
-    case 'chatmarker-mark-chat':
+    case "chatmarker-mark-chat":
       markCurrentChat();
       break;
 
-    case 'chatmarker-label-urgent':
-    case 'chatmarker-label-important':
-    case 'chatmarker-label-completed':
-    case 'chatmarker-label-followup':
-    case 'chatmarker-label-question':
-      const labelId = menuItemId.replace('chatmarker-label-', '');
+    case "chatmarker-label-urgent":
+    case "chatmarker-label-important":
+    case "chatmarker-label-completed":
+    case "chatmarker-label-followup":
+    case "chatmarker-label-question":
+      const labelId = menuItemId.replace("chatmarker-label-", "");
       toggleChatLabel(labelId);
       break;
 
-    case 'chatmarker-note':
+    case "chatmarker-note":
       openChatNoteEditor();
       break;
 
-    case 'chatmarker-reminder':
+    case "chatmarker-reminder":
       openChatReminderPicker();
       break;
 
     default:
-      console.warn('[ChatMarker] Unknown context menu action:', menuItemId);
+      console.warn("[ChatMarker] Unknown context menu action:", menuItemId);
   }
 }
 
@@ -258,13 +277,13 @@ function handleContextMenuAction(menuItemId, selectionText) {
  */
 function handleBackgroundMessage(request, sender, sendResponse) {
   switch (request.action) {
-    case 'contextMenuAction':
+    case "contextMenuAction":
       handleContextMenuAction(request.menuItemId, request.selectionText);
       sendResponse({ success: true });
       break;
 
     default:
-      sendResponse({ success: false, error: 'Unknown action' });
+      sendResponse({ success: false, error: "Unknown action" });
   }
 }
 
@@ -276,72 +295,77 @@ async function markCurrentChat() {
     const chatId = getCurrentChatId();
     const chatName = getChatName();
 
-    if (!chatId || chatId === 'unknown' || chatName === 'Unknown Chat') {
-      showToast('⚠️ Could not identify chat. Please right-click on a chat in the list.');
+    if (!chatId || chatId === "unknown" || chatName === "Unknown Chat") {
+      showToast(
+        "⚠️ Could not identify chat. Please right-click on a chat in the list.",
+      );
       return;
     }
 
-    console.log('[ChatMarker] Marking chat:', chatName, chatId);
+    console.log("[ChatMarker] Marking chat:", chatName, chatId);
 
     // Check if chat is already marked
     safeSendMessage(
       {
-        action: 'getChatMarker',
+        action: "getChatMarker",
         chatId: chatId,
-        platform: 'instagram'
+        platform: "instagram",
       },
       async (response) => {
         if (response && response.success && response.data) {
           // Chat already marked - unmark it
           safeSendMessage(
             {
-              action: 'deleteChatMarker',
-              chatMarkerId: response.data.chatMarkerId
+              action: "deleteChatMarker",
+              chatMarkerId: response.data.chatMarkerId,
             },
             (deleteResponse) => {
               if (deleteResponse && deleteResponse.success) {
-                console.log('[ChatMarker] Chat unmarked:', chatName);
+                console.log("[ChatMarker] Chat unmarked:", chatName);
                 showToast(`✅ Chat "${chatName}" unmarked`);
                 updateChatListIndicators(); // Refresh indicators
               } else {
-                console.error('[ChatMarker] Failed to unmark chat');
-                showToast('❌ Failed to unmark chat');
+                console.error("[ChatMarker] Failed to unmark chat");
+                showToast("❌ Failed to unmark chat");
               }
-            }
+            },
           );
         } else {
           // Chat not marked - mark it
           const chatMarker = {
-            platform: 'instagram',
+            platform: "instagram",
             chatId: chatId,
             chatName: chatName,
             labels: [],
-            notes: '',
-            createdAt: Date.now()
+            notes: "",
+            createdAt: Date.now(),
           };
 
           safeSendMessage(
             {
-              action: 'saveChatMarker',
-              data: chatMarker
+              action: "saveChatMarker",
+              data: chatMarker,
             },
             (saveResponse) => {
               if (saveResponse && saveResponse.success) {
-                console.log('[ChatMarker] Chat marked successfully:', chatName);
+                console.log("[ChatMarker] Chat marked successfully:", chatName);
                 showToast(`✅ Chat "${chatName}" marked`);
                 updateChatListIndicators(); // Refresh indicators
               } else {
-                console.error('[ChatMarker] Failed to mark chat:', saveResponse?.error);
-                showToast('❌ Failed to mark chat');
+                console.error(
+                  "[ChatMarker] Failed to mark chat:",
+                  saveResponse?.error,
+                );
+                showToast("❌ Failed to mark chat");
               }
-            }
+            },
           );
         }
-      }
+      },
     );
   } catch (error) {
-    console.error('[ChatMarker] Error marking chat:', error);
-    showToast('❌ Error marking chat');
+    console.error("[ChatMarker] Error marking chat:", error);
+    showToast("❌ Error marking chat");
   }
 }
 
@@ -353,17 +377,19 @@ async function toggleChatLabel(labelName) {
     const chatId = getCurrentChatId();
     const chatName = getChatName();
 
-    if (!chatId || chatId === 'unknown' || chatName === 'Unknown Chat') {
-      showToast('⚠️ Could not identify chat. Please right-click on a chat in the list.');
+    if (!chatId || chatId === "unknown" || chatName === "Unknown Chat") {
+      showToast(
+        "⚠️ Could not identify chat. Please right-click on a chat in the list.",
+      );
       return;
     }
 
     // Get current chat marker
     safeSendMessage(
       {
-        action: 'getChatMarker',
+        action: "getChatMarker",
         chatId: chatId,
-        platform: 'instagram'
+        platform: "instagram",
       },
       async (response) => {
         if (response && response.success && response.data) {
@@ -385,49 +411,49 @@ async function toggleChatLabel(labelName) {
           // Update chat marker
           safeSendMessage(
             {
-              action: 'saveChatMarker',
-              data: { ...chatMarker, labels, updatedAt: Date.now() }
+              action: "saveChatMarker",
+              data: { ...chatMarker, labels, updatedAt: Date.now() },
             },
             (saveResponse) => {
               if (!saveResponse || !saveResponse.success) {
-                console.error('[ChatMarker] Failed to update labels');
-                showToast('❌ Failed to update label');
+                console.error("[ChatMarker] Failed to update labels");
+                showToast("❌ Failed to update label");
               } else {
                 updateChatListIndicators(); // Refresh indicators
               }
-            }
+            },
           );
         } else {
           // Chat not marked yet - mark it first with this label
           const chatMarker = {
-            platform: 'instagram',
+            platform: "instagram",
             chatId: chatId,
             chatName: chatName,
             labels: [labelName],
-            notes: '',
-            createdAt: Date.now()
+            notes: "",
+            createdAt: Date.now(),
           };
 
           safeSendMessage(
             {
-              action: 'saveChatMarker',
-              data: chatMarker
+              action: "saveChatMarker",
+              data: chatMarker,
             },
             (saveResponse) => {
               if (saveResponse && saveResponse.success) {
                 showToast(`✅ Chat marked with "${labelName}" label`);
                 updateChatListIndicators(); // Refresh indicators
               } else {
-                showToast('❌ Failed to mark chat');
+                showToast("❌ Failed to mark chat");
               }
-            }
+            },
           );
         }
-      }
+      },
     );
   } catch (error) {
-    console.error('[ChatMarker] Error toggling chat label:', error);
-    showToast('❌ Error updating label');
+    console.error("[ChatMarker] Error toggling chat label:", error);
+    showToast("❌ Error updating label");
   }
 }
 
@@ -438,17 +464,19 @@ function openChatNoteEditor() {
   const chatId = getCurrentChatId();
   const chatName = getChatName();
 
-  if (!chatId || chatId === 'unknown' || chatName === 'Unknown Chat') {
-    showToast('⚠️ Could not identify chat. Please right-click on a chat in the list.');
+  if (!chatId || chatId === "unknown" || chatName === "Unknown Chat") {
+    showToast(
+      "⚠️ Could not identify chat. Please right-click on a chat in the list.",
+    );
     return;
   }
 
   // Get current chat marker
   safeSendMessage(
     {
-      action: 'getChatMarker',
+      action: "getChatMarker",
       chatId: chatId,
-      platform: 'instagram'
+      platform: "instagram",
     },
     (response) => {
       if (response && response.success && response.data) {
@@ -457,29 +485,29 @@ function openChatNoteEditor() {
       } else {
         // Chat not marked yet - mark it first, then show note modal
         const chatMarker = {
-          platform: 'instagram',
+          platform: "instagram",
           chatId: chatId,
           chatName: chatName,
           labels: [],
-          notes: '',
-          createdAt: Date.now()
+          notes: "",
+          createdAt: Date.now(),
         };
 
         safeSendMessage(
           {
-            action: 'saveChatMarker',
-            data: chatMarker
+            action: "saveChatMarker",
+            data: chatMarker,
           },
           (saveResponse) => {
             if (saveResponse && saveResponse.success) {
               showInlineNoteModal(saveResponse.chatMarker);
             } else {
-              showToast('❌ Failed to mark chat');
+              showToast("❌ Failed to mark chat");
             }
-          }
+          },
         );
       }
-    }
+    },
   );
 }
 
@@ -490,17 +518,19 @@ function openChatReminderPicker() {
   const chatId = getCurrentChatId();
   const chatName = getChatName();
 
-  if (!chatId || chatId === 'unknown' || chatName === 'Unknown Chat') {
-    showToast('⚠️ Could not identify chat. Please right-click on a chat in the list.');
+  if (!chatId || chatId === "unknown" || chatName === "Unknown Chat") {
+    showToast(
+      "⚠️ Could not identify chat. Please right-click on a chat in the list.",
+    );
     return;
   }
 
   // Get current chat marker
   safeSendMessage(
     {
-      action: 'getChatMarker',
+      action: "getChatMarker",
       chatId: chatId,
-      platform: 'instagram'
+      platform: "instagram",
     },
     (response) => {
       if (response && response.success && response.data) {
@@ -509,29 +539,29 @@ function openChatReminderPicker() {
       } else {
         // Chat not marked yet - mark it first, then show reminder modal
         const chatMarker = {
-          platform: 'instagram',
+          platform: "instagram",
           chatId: chatId,
           chatName: chatName,
           labels: [],
-          notes: '',
-          createdAt: Date.now()
+          notes: "",
+          createdAt: Date.now(),
         };
 
         safeSendMessage(
           {
-            action: 'saveChatMarker',
-            data: chatMarker
+            action: "saveChatMarker",
+            data: chatMarker,
           },
           (saveResponse) => {
             if (saveResponse && saveResponse.success) {
               showInlineReminderModal(saveResponse.chatMarker);
             } else {
-              showToast('❌ Failed to mark chat');
+              showToast("❌ Failed to mark chat");
             }
-          }
+          },
         );
       }
-    }
+    },
   );
 }
 
@@ -540,15 +570,15 @@ function openChatReminderPicker() {
  */
 function showInlineNoteModal(chatMarker) {
   // Remove existing modal if any
-  const existingModal = document.querySelector('.chatmarker-inline-modal');
+  const existingModal = document.querySelector(".chatmarker-inline-modal");
   if (existingModal) existingModal.remove();
 
   // Get theme colors
   const theme = getThemeColors();
 
   // Create modal overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'chatmarker-inline-modal';
+  const overlay = document.createElement("div");
+  overlay.className = "chatmarker-inline-modal";
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -564,7 +594,7 @@ function showInlineNoteModal(chatMarker) {
   `;
 
   // Create modal content
-  const modal = document.createElement('div');
+  const modal = document.createElement("div");
   modal.style.cssText = `
     background: ${theme.modalBg};
     border-radius: 12px;
@@ -585,7 +615,7 @@ function showInlineNoteModal(chatMarker) {
         <div style="color: ${theme.textSecondary}; margin-top: 4px;">${chatMarker.chatName}</div>
       </div>
       <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${theme.textPrimary};">Your Note:</label>
-      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." maxlength="500" style="width: 100%; box-sizing: border-box; min-height: 120px; padding: 12px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; background: ${theme.inputBg}; color: ${theme.textPrimary}; transition: border-color 0.2s, box-shadow 0.2s;">${chatMarker.notes || ''}</textarea>
+      <textarea class="chatmarker-note-textarea" placeholder="Add your note here..." maxlength="500" style="width: 100%; box-sizing: border-box; min-height: 120px; padding: 12px; border: 1px solid ${theme.inputBorder}; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; background: ${theme.inputBg}; color: ${theme.textPrimary}; transition: border-color 0.2s, box-shadow 0.2s;">${chatMarker.notes || ""}</textarea>
       <div style="text-align: right; margin-top: 4px; font-size: 12px; color: ${theme.textSecondary};">
         <span class="chatmarker-char-count">0</span> / 500
       </div>
@@ -600,81 +630,81 @@ function showInlineNoteModal(chatMarker) {
   document.body.appendChild(overlay);
 
   // Get elements
-  const textarea = modal.querySelector('.chatmarker-note-textarea');
-  const charCount = modal.querySelector('.chatmarker-char-count');
-  const closeBtn = modal.querySelector('.chatmarker-close-btn');
-  const cancelBtn = modal.querySelector('.chatmarker-cancel-btn');
-  const saveBtn = modal.querySelector('.chatmarker-save-btn');
+  const textarea = modal.querySelector(".chatmarker-note-textarea");
+  const charCount = modal.querySelector(".chatmarker-char-count");
+  const closeBtn = modal.querySelector(".chatmarker-close-btn");
+  const cancelBtn = modal.querySelector(".chatmarker-cancel-btn");
+  const saveBtn = modal.querySelector(".chatmarker-save-btn");
 
   // Update char count
   const updateCharCount = () => {
     charCount.textContent = textarea.value.length;
   };
   updateCharCount();
-  textarea.addEventListener('input', updateCharCount);
+  textarea.addEventListener("input", updateCharCount);
 
   // Add focus/blur effects for textarea
-  textarea.addEventListener('focus', () => {
-    textarea.style.borderColor = '#6366F1';
-    textarea.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+  textarea.addEventListener("focus", () => {
+    textarea.style.borderColor = "#6366F1";
+    textarea.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.1)";
   });
-  textarea.addEventListener('blur', () => {
+  textarea.addEventListener("blur", () => {
     textarea.style.borderColor = theme.inputBorder;
-    textarea.style.boxShadow = 'none';
+    textarea.style.boxShadow = "none";
   });
 
   // Add hover effects for buttons
-  cancelBtn.addEventListener('mouseenter', () => {
+  cancelBtn.addEventListener("mouseenter", () => {
     cancelBtn.style.background = theme.inputBorder;
   });
-  cancelBtn.addEventListener('mouseleave', () => {
+  cancelBtn.addEventListener("mouseleave", () => {
     cancelBtn.style.background = theme.buttonSecondaryBg;
   });
 
-  saveBtn.addEventListener('mouseenter', () => {
+  saveBtn.addEventListener("mouseenter", () => {
     saveBtn.style.background = theme.primaryDark;
-    saveBtn.style.transform = 'translateY(-1px)';
-    saveBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+    saveBtn.style.transform = "translateY(-1px)";
+    saveBtn.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.3)";
   });
-  saveBtn.addEventListener('mouseleave', () => {
+  saveBtn.addEventListener("mouseleave", () => {
     saveBtn.style.background = theme.primary;
-    saveBtn.style.transform = 'translateY(0)';
-    saveBtn.style.boxShadow = 'none';
+    saveBtn.style.transform = "translateY(0)";
+    saveBtn.style.boxShadow = "none";
   });
 
-  closeBtn.addEventListener('mouseenter', () => {
+  closeBtn.addEventListener("mouseenter", () => {
     closeBtn.style.background = theme.inputBorder;
   });
-  closeBtn.addEventListener('mouseleave', () => {
-    closeBtn.style.background = 'none';
+  closeBtn.addEventListener("mouseleave", () => {
+    closeBtn.style.background = "none";
   });
 
   // Close handlers
   const closeModal = () => overlay.remove();
-  closeBtn.addEventListener('click', closeModal);
-  cancelBtn.addEventListener('click', closeModal);
-  overlay.addEventListener('click', (e) => {
+  closeBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
   });
 
   // Save handler
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener("click", () => {
     const noteText = textarea.value.trim();
 
     safeSendMessage(
       {
-        action: 'saveChatMarker',
-        data: { ...chatMarker, notes: noteText, updatedAt: Date.now() }
+        action: "saveChatMarker",
+        data: { ...chatMarker, notes: noteText, updatedAt: Date.now() },
       },
       (response) => {
         if (response && response.success) {
-          showToast('✅ Note saved');
+          showToast("✅ Note saved");
           closeModal();
           updateChatListIndicators(); // Refresh indicators
         } else {
-          showToast('❌ Failed to save note');
+          showToast("❌ Failed to save note");
         }
-      }
+      },
     );
   });
 
@@ -687,15 +717,15 @@ function showInlineNoteModal(chatMarker) {
  */
 function showInlineReminderModal(chatMarker) {
   // Remove existing modal if any
-  const existingModal = document.querySelector('.chatmarker-inline-modal');
+  const existingModal = document.querySelector(".chatmarker-inline-modal");
   if (existingModal) existingModal.remove();
 
   // Get theme colors
   const theme = getThemeColors();
 
   // Create modal overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'chatmarker-inline-modal';
+  const overlay = document.createElement("div");
+  overlay.className = "chatmarker-inline-modal";
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -711,7 +741,7 @@ function showInlineReminderModal(chatMarker) {
   `;
 
   // Create modal content
-  const modal = document.createElement('div');
+  const modal = document.createElement("div");
   modal.style.cssText = `
     background: ${theme.modalBg};
     border-radius: 12px;
@@ -724,10 +754,10 @@ function showInlineReminderModal(chatMarker) {
   // Get min datetime (now)
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
   const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
   modal.innerHTML = `
@@ -760,115 +790,115 @@ function showInlineReminderModal(chatMarker) {
   document.body.appendChild(overlay);
 
   // Get elements
-  const customDateTime = modal.querySelector('.chatmarker-custom-datetime');
-  const quickBtns = modal.querySelectorAll('.chatmarker-quick-reminder');
-  const closeBtn = modal.querySelector('.chatmarker-close-btn');
-  const cancelBtn = modal.querySelector('.chatmarker-cancel-btn');
-  const saveBtn = modal.querySelector('.chatmarker-save-reminder-btn');
+  const customDateTime = modal.querySelector(".chatmarker-custom-datetime");
+  const quickBtns = modal.querySelectorAll(".chatmarker-quick-reminder");
+  const closeBtn = modal.querySelector(".chatmarker-close-btn");
+  const cancelBtn = modal.querySelector(".chatmarker-cancel-btn");
+  const saveBtn = modal.querySelector(".chatmarker-save-reminder-btn");
 
   // Function to enable save button
   const enableSaveButton = () => {
     saveBtn.disabled = false;
     saveBtn.style.background = theme.primary;
-    saveBtn.style.cursor = 'pointer';
+    saveBtn.style.cursor = "pointer";
   };
 
   // Add hover effects for quick reminder buttons
-  quickBtns.forEach(btn => {
-    btn.addEventListener('mouseenter', () => {
+  quickBtns.forEach((btn) => {
+    btn.addEventListener("mouseenter", () => {
       btn.style.background = theme.primary;
       btn.style.borderColor = theme.primary;
-      btn.style.color = 'white';
-      btn.style.transform = 'translateY(-2px)';
-      btn.style.boxShadow = '0 4px 8px rgba(99, 102, 241, 0.2)';
+      btn.style.color = "white";
+      btn.style.transform = "translateY(-2px)";
+      btn.style.boxShadow = "0 4px 8px rgba(99, 102, 241, 0.2)";
     });
-    btn.addEventListener('mouseleave', () => {
+    btn.addEventListener("mouseleave", () => {
       btn.style.background = theme.buttonSecondaryBg;
       btn.style.borderColor = theme.buttonSecondaryBorder;
       btn.style.color = theme.buttonSecondaryText;
-      btn.style.transform = 'translateY(0)';
-      btn.style.boxShadow = 'none';
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "none";
     });
   });
 
   // Add focus/blur effects for datetime input
-  customDateTime.addEventListener('focus', () => {
+  customDateTime.addEventListener("focus", () => {
     customDateTime.style.borderColor = theme.primary;
-    customDateTime.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+    customDateTime.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.1)";
   });
-  customDateTime.addEventListener('blur', () => {
+  customDateTime.addEventListener("blur", () => {
     customDateTime.style.borderColor = theme.inputBorder;
-    customDateTime.style.boxShadow = 'none';
+    customDateTime.style.boxShadow = "none";
   });
 
   // Enable save button when datetime is selected
-  customDateTime.addEventListener('change', () => {
+  customDateTime.addEventListener("change", () => {
     if (customDateTime.value) {
       enableSaveButton();
     }
   });
 
   // Add hover effects for cancel button
-  cancelBtn.addEventListener('mouseenter', () => {
+  cancelBtn.addEventListener("mouseenter", () => {
     cancelBtn.style.background = theme.inputBorder;
   });
-  cancelBtn.addEventListener('mouseleave', () => {
+  cancelBtn.addEventListener("mouseleave", () => {
     cancelBtn.style.background = theme.buttonSecondaryBg;
   });
 
   // Add hover effects for save button (when enabled)
-  saveBtn.addEventListener('mouseenter', () => {
+  saveBtn.addEventListener("mouseenter", () => {
     if (!saveBtn.disabled) {
       saveBtn.style.background = theme.primaryDark;
-      saveBtn.style.transform = 'translateY(-1px)';
-      saveBtn.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+      saveBtn.style.transform = "translateY(-1px)";
+      saveBtn.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.3)";
     }
   });
-  saveBtn.addEventListener('mouseleave', () => {
+  saveBtn.addEventListener("mouseleave", () => {
     if (!saveBtn.disabled) {
       saveBtn.style.background = theme.primary;
-      saveBtn.style.transform = 'translateY(0)';
-      saveBtn.style.boxShadow = 'none';
+      saveBtn.style.transform = "translateY(0)";
+      saveBtn.style.boxShadow = "none";
     }
   });
 
   // Add hover effect for close button
-  closeBtn.addEventListener('mouseenter', () => {
+  closeBtn.addEventListener("mouseenter", () => {
     closeBtn.style.background = theme.inputBorder;
   });
-  closeBtn.addEventListener('mouseleave', () => {
-    closeBtn.style.background = 'none';
+  closeBtn.addEventListener("mouseleave", () => {
+    closeBtn.style.background = "none";
   });
 
   // Close handlers
   const closeModal = () => overlay.remove();
-  closeBtn.addEventListener('click', closeModal);
-  cancelBtn.addEventListener('click', closeModal);
-  overlay.addEventListener('click', (e) => {
+  closeBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
   });
 
   // Quick reminder buttons
-  quickBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+  quickBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
       const minutes = parseInt(btn.dataset.minutes);
-      const reminderTime = Date.now() + (minutes * 60 * 1000);
+      const reminderTime = Date.now() + minutes * 60 * 1000;
       saveReminder(reminderTime);
     });
   });
 
   // Save reminder handler
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener("click", () => {
     if (saveBtn.disabled) {
       return;
     }
     if (!customDateTime.value) {
-      showToast('⚠️ Please select a date and time');
+      showToast("⚠️ Please select a date and time");
       return;
     }
     const reminderTime = new Date(customDateTime.value).getTime();
     if (reminderTime <= Date.now()) {
-      showToast('⚠️ Reminder time must be in the future');
+      showToast("⚠️ Reminder time must be in the future");
       return;
     }
     saveReminder(reminderTime);
@@ -879,16 +909,16 @@ function showInlineReminderModal(chatMarker) {
       messageId: chatMarker.chatMarkerId,
       reminderTime: reminderTime,
       title: `Reminder: ${chatMarker.chatName}`,
-      body: chatMarker.notes || 'Check this chat',
+      body: chatMarker.notes || "Check this chat",
       chatName: chatMarker.chatName,
-      platform: 'instagram',
-      active: true
+      platform: "instagram",
+      active: true,
     };
 
     safeSendMessage(
       {
-        action: 'createReminder',
-        data: reminderData
+        action: "createReminder",
+        data: reminderData,
       },
       (response) => {
         if (response && response.success) {
@@ -897,9 +927,9 @@ function showInlineReminderModal(chatMarker) {
           closeModal();
           updateChatListIndicators(); // Refresh indicators
         } else {
-          showToast('❌ Failed to set reminder');
+          showToast("❌ Failed to set reminder");
         }
-      }
+      },
     );
   }
 }
@@ -908,7 +938,7 @@ function showInlineReminderModal(chatMarker) {
  * Set up observer for chat list to add indicators
  */
 function setupChatListObserver() {
-  console.log('[ChatMarker] Setting up chat list observer for indicators...');
+  console.log("[ChatMarker] Setting up chat list observer for indicators...");
 
   // Initial update
   setTimeout(() => {
@@ -926,51 +956,64 @@ function setupChatListObserver() {
   // Observe the body for chat list changes
   observer.observe(document.body, {
     childList: true,
-    subtree: true
+    subtree: true,
   });
 
-  console.log('[ChatMarker] Chat list observer attached');
+  console.log("[ChatMarker] Chat list observer attached");
 }
 
 /**
  * Update indicators on chat list items
  */
 async function updateChatListIndicators() {
-  console.log('[ChatMarker] Updating chat list indicators...');
+  console.log("[ChatMarker] Updating chat list indicators...");
 
   // Get all marked chats
   safeSendMessage(
     {
-      action: 'getAllChatMarkers'
+      action: "getAllChatMarkers",
     },
     (response) => {
       if (!response || !response.success) {
-        console.log('[ChatMarker] Failed to get chat markers for indicators');
+        console.log("[ChatMarker] Failed to get chat markers for indicators");
         return;
       }
 
       const chatMarkers = response.data || {};
-      const instagramMarkers = Object.values(chatMarkers).filter(m => m.platform === 'instagram');
-      console.log('[ChatMarker] Found', instagramMarkers.length, 'Instagram chat markers');
+      const instagramMarkers = Object.values(chatMarkers).filter(
+        (m) => m.platform === "instagram",
+      );
+      console.log(
+        "[ChatMarker] Found",
+        instagramMarkers.length,
+        "Instagram chat markers",
+      );
 
       const chatItems = findChatListItems();
 
       chatItems.forEach(({ element, name }) => {
-        const matchedMarker = instagramMarkers.find(m => m.chatName === name);
+        const matchedMarker = instagramMarkers.find((m) => m.chatName === name);
         const isMarked = !!matchedMarker;
 
         // Check if indicator already exists
-        const existingIndicator = element.querySelector('.chatmarker-instagram-indicator');
+        const existingIndicator = element.querySelector(
+          ".chatmarker-instagram-indicator",
+        );
 
         if (isMarked && !existingIndicator) {
           console.log(`[ChatMarker] Adding indicator to "${name}"`);
+          addChatListIndicator(element, matchedMarker);
+        } else if (isMarked && existingIndicator) {
+          // Update existing indicator in case labels changed
+          console.log(`[ChatMarker] Updating indicator for "${name}"`);
+          existingIndicator.remove();
           addChatListIndicator(element, matchedMarker);
         } else if (!isMarked && existingIndicator) {
           console.log(`[ChatMarker] Removing indicator from "${name}"`);
           existingIndicator.remove();
         }
       });
-    }
+    },
   );
 }
 
@@ -982,10 +1025,10 @@ function findChatListItems() {
 
   // Instagram chat list items contain span[title] with chat name
   // Find all elements with span[title] and traverse up to find the container
-  const titleSpans = document.querySelectorAll('span[title]');
+  const titleSpans = document.querySelectorAll("span[title]");
 
-  titleSpans.forEach(titleSpan => {
-    const chatName = titleSpan.getAttribute('title');
+  titleSpans.forEach((titleSpan) => {
+    const chatName = titleSpan.getAttribute("title");
     if (!chatName || chatName.length === 0) return;
 
     // Traverse up to find the outer container (has many classes including html-div)
@@ -996,16 +1039,20 @@ function findChatListItems() {
     while (container && depth < maxDepth) {
       // Look for the outer chat container
       // It typically has classes like: html-div xdj266r x14z9mp xat24cr x1lziwak x1qjc9v5
-      if (container.classList && container.classList.contains('html-div') &&
-          container.classList.contains('xdj266r') &&
-          container.classList.contains('x1qjc9v5')) {
-
+      if (
+        container.classList &&
+        container.classList.contains("html-div") &&
+        container.classList.contains("xdj266r") &&
+        container.classList.contains("x1qjc9v5")
+      ) {
         // Check if we already added this container
-        const alreadyAdded = chatItems.some(item => item.element === container);
+        const alreadyAdded = chatItems.some(
+          (item) => item.element === container,
+        );
         if (!alreadyAdded) {
           chatItems.push({
             element: container,
-            name: chatName
+            name: chatName,
           });
         }
         break;
@@ -1016,45 +1063,60 @@ function findChatListItems() {
     }
   });
 
-  console.log('[ChatMarker] Total chat items found:', chatItems.length);
+  console.log("[ChatMarker] Total chat items found:", chatItems.length);
   return chatItems;
 }
 
 /**
- * Add indicator to chat list item - floating overlay style like Facebook
+ * Add indicator to chat list item - absolute positioned on right edge
  */
 function addChatListIndicator(chatElement, chatMarker) {
-  // Make the chat element positioned so we can absolutely position the indicator
-  chatElement.style.position = 'relative';
+  // Make chat element positioned for absolute positioning
+  chatElement.style.position = "relative";
 
-  // Create indicator as floating overlay
-  const indicator = document.createElement('div');
-  indicator.className = 'chatmarker-instagram-indicator';
-  indicator.style.cssText = `
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 18px;
-    z-index: 999;
-    pointer-events: none;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-    line-height: 1;
-  `;
+  // Label emoji mapping
+  const labelEmojis = {
+    urgent: "🔴",
+    important: "🟡",
+    completed: "🟢",
+    followup: "🔵",
+    question: "🟣",
+  };
 
-  // Determine icon based on labels
+  // Determine what to display
+  let displayContent = "⭐"; // Default star
+  let titleText = "Marked chat";
+
   if (chatMarker.labels && chatMarker.labels.length > 0) {
-    indicator.textContent = '⭐';
-    indicator.title = `Marked with: ${chatMarker.labels.join(', ')}`;
-  } else if (chatMarker.notes && chatMarker.notes.trim()) {
-    indicator.textContent = '📝';
-    indicator.title = 'Has note';
-  } else {
-    indicator.textContent = '⭐';
-    indicator.title = 'Marked chat';
+    // Show label emojis instead of star
+    displayContent = chatMarker.labels
+      .map((label) => labelEmojis[label] || "🏷️")
+      .join("");
+    titleText = `Marked with: ${chatMarker.labels.join(", ")}`;
   }
 
+  // Create indicator absolutely positioned at top-right edge
+  const indicator = document.createElement("div");
+  indicator.className = "chatmarker-instagram-indicator";
+  indicator.textContent = displayContent;
+  indicator.title = titleText;
+  indicator.style.cssText = `
+    position: absolute;
+    top: -2px;
+    right: 4px;
+    font-size: 14px;
+    line-height: 1;
+    z-index: 10;
+    pointer-events: none;
+  `;
+
+  // Append to chat element
   chatElement.appendChild(indicator);
-  console.log('[ChatMarker] Added indicator to:', chatMarker.chatName);
+  console.log(
+    "[ChatMarker] Added indicator to:",
+    chatMarker.chatName,
+    displayContent,
+  );
 }
 
 /**
@@ -1062,12 +1124,12 @@ function addChatListIndicator(chatElement, chatMarker) {
  */
 function showToast(message) {
   // Remove existing toast if any
-  const existingToast = document.querySelector('.chatmarker-toast');
+  const existingToast = document.querySelector(".chatmarker-toast");
   if (existingToast) existingToast.remove();
 
   // Create toast
-  const toast = document.createElement('div');
-  toast.className = 'chatmarker-toast';
+  const toast = document.createElement("div");
+  toast.className = "chatmarker-toast";
   toast.textContent = message;
   toast.style.cssText = `
     position: fixed;
@@ -1089,7 +1151,7 @@ function showToast(message) {
 
   // Auto-remove after 3 seconds
   setTimeout(() => {
-    toast.style.animation = 'slideOut 0.3s ease';
+    toast.style.animation = "slideOut 0.3s ease";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
@@ -1102,11 +1164,11 @@ chrome.runtime.onConnect.addListener(() => {
 // Check for context invalidation periodically
 let contextCheckInterval = setInterval(() => {
   if (!isExtensionContextValid()) {
-    console.warn('[ChatMarker] Extension context invalidated');
+    console.warn("[ChatMarker] Extension context invalidated");
     clearInterval(contextCheckInterval);
 
     // Show notification to user
-    const notification = document.createElement('div');
+    const notification = document.createElement("div");
     notification.style.cssText = `
       position: fixed;
       top: 20px;
@@ -1134,12 +1196,12 @@ let contextCheckInterval = setInterval(() => {
 }, 5000); // Check every 5 seconds
 
 // Initialize when page loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     init();
   });
 } else {
   init();
 }
 
-console.log('[ChatMarker] Instagram content script loaded');
+console.log("[ChatMarker] Instagram content script loaded");

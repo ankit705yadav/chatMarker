@@ -544,27 +544,36 @@ function addChatListIndicator(chatElement, chatMarker) {
     return;
   }
 
+  // Label emoji mapping
+  const labelEmojis = {
+    urgent: '🔴',
+    important: '🟡',
+    completed: '🟢',
+    followup: '🔵',
+    question: '🟣'
+  };
+
+  // Determine what to display
+  let displayContent = '⭐'; // Default star
+  let titleText = 'Marked chat';
+
+  if (chatMarker.labels && chatMarker.labels.length > 0) {
+    // Show label emojis instead of star
+    displayContent = chatMarker.labels.map(label => labelEmojis[label] || '🏷️').join('');
+    titleText = `Marked with: ${chatMarker.labels.join(', ')}`;
+  }
+
   // Create indicator
   const indicator = document.createElement('span');
   indicator.className = 'chatmarker-linkedin-indicator';
+  indicator.textContent = displayContent;
+  indicator.title = titleText;
   indicator.style.cssText = `
     margin-right: 4px;
     font-size: 14px;
     line-height: 1;
     display: inline-block;
   `;
-
-  // Set icon based on content
-  if (chatMarker.labels && chatMarker.labels.length > 0) {
-    indicator.textContent = '⭐';
-    indicator.title = `Marked with: ${chatMarker.labels.join(', ')}`;
-  } else if (chatMarker.notes && chatMarker.notes.trim()) {
-    indicator.textContent = '📝';
-    indicator.title = 'Has note';
-  } else {
-    indicator.textContent = '⭐';
-    indicator.title = 'Marked chat';
-  }
 
   // Insert before time element
   timeElement.parentElement.insertBefore(indicator, timeElement);

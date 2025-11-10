@@ -1326,17 +1326,37 @@ function addChatListIndicator(listItem, chatMarker) {
     return;
   }
 
-  // Check if indicator already exists in this specific location
+  // Check if indicator already exists - if so, remove it first to update
   const existingIndicator = timeElement.querySelector('[data-chatmarker-indicator]');
   if (existingIndicator) {
-    console.log('[ChatMarker] Indicator already exists in time element, skipping');
-    return;
+    existingIndicator.remove();
+  }
+
+  // Label emoji mapping
+  const labelEmojis = {
+    urgent: '🔴',
+    important: '🟡',
+    completed: '🟢',
+    followup: '🔵',
+    question: '🟣'
+  };
+
+  // Determine what to display
+  let displayContent = '⭐'; // Default star
+  let titleText = 'Marked chat';
+
+  if (chatMarker.labels && chatMarker.labels.length > 0) {
+    // Show label emojis instead of star
+    displayContent = chatMarker.labels.map(label => labelEmojis[label] || '🏷️').join('');
+    titleText = `Marked with: ${chatMarker.labels.join(', ')}`;
   }
 
   // Create indicator as inline element
   const indicator = document.createElement('span');
   indicator.className = 'chatmarker-list-indicator';
   indicator.setAttribute('data-chatmarker-indicator', 'true');
+  indicator.textContent = displayContent;
+  indicator.title = titleText;
   indicator.style.cssText = `
     display: inline-block;
     margin-right: 4px;
@@ -1345,21 +1365,9 @@ function addChatListIndicator(listItem, chatMarker) {
     vertical-align: middle;
   `;
 
-  // Determine icon based on labels
-  if (chatMarker.labels && chatMarker.labels.length > 0) {
-    indicator.textContent = '⭐';
-    indicator.title = `Marked with: ${chatMarker.labels.join(', ')}`;
-  } else if (chatMarker.notes && chatMarker.notes.trim()) {
-    indicator.textContent = '📝';
-    indicator.title = 'Has note';
-  } else {
-    indicator.textContent = '⭐';
-    indicator.title = 'Marked chat';
-  }
-
-  // Insert star before the time text
+  // Insert indicator before the time text
   timeElement.insertBefore(indicator, timeElement.firstChild);
-  console.log('[ChatMarker] Added indicator before time to:', chatMarker.chatName);
+  console.log('[ChatMarker] Added indicator before time to:', chatMarker.chatName, displayContent);
 }
 
 /**

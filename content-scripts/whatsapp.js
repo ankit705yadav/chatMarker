@@ -1057,7 +1057,7 @@ function extractChatNameFromListItem(element) {
 }
 
 /**
- * Add star indicator to a chat list item
+ * Add indicator (star or labels) to a chat list item
  */
 function addChatListIndicator(chatElement, chatMarker) {
   // Find the time element - it has class "_ak8i" and contains the time text
@@ -1068,28 +1068,43 @@ function addChatListIndicator(chatElement, chatMarker) {
     return;
   }
 
-  // Check if indicator already exists in this specific location
+  // Check if indicator already exists - if so, remove it first to update
   const existingIndicator = timeElement.querySelector('.chatmarker-whatsapp-indicator');
   if (existingIndicator) {
-    console.log('[ChatMarker] Indicator already exists, skipping');
-    return;
+    existingIndicator.remove();
+  }
+
+  // Label emoji mapping
+  const labelEmojis = {
+    urgent: '🔴',
+    important: '🟡',
+    completed: '🟢',
+    followup: '🔵',
+    question: '🟣'
+  };
+
+  // Determine what to display
+  let displayContent = '⭐'; // Default star
+  if (chatMarker.labels && chatMarker.labels.length > 0) {
+    // Show label emojis instead of star
+    displayContent = chatMarker.labels.map(label => labelEmojis[label] || '🏷️').join('');
   }
 
   // Create the indicator
   const indicator = document.createElement('span');
   indicator.className = 'chatmarker-whatsapp-indicator';
-  indicator.textContent = '⭐';
+  indicator.textContent = displayContent;
   indicator.style.cssText = `
     display: inline-block;
     margin-right: 4px;
-    font-size: 14px;
-    line-height: 1;
-    vertical-align: middle;
+    font-size: 13px;
+    line-height: 1.2;
+    vertical-align: text-bottom;
   `;
 
-  // Insert star before the time text
+  // Insert indicator before the time text
   timeElement.insertBefore(indicator, timeElement.firstChild);
-  console.log('[ChatMarker] ✅ Star indicator added before time');
+  console.log('[ChatMarker] ✅ Indicator added before time:', displayContent);
 }
 
 /**
