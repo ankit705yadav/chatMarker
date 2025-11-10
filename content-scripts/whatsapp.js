@@ -304,7 +304,8 @@ async function markCurrentChat() {
               if (deleteResponse && deleteResponse.success) {
                 console.log('[ChatMarker] Chat unmarked:', chatName);
                 showToast(`✅ Chat "${chatName}" unmarked`);
-                updateChatListIndicators(); // Refresh indicators
+                // Delay to let DOM settle before updating indicators
+                setTimeout(() => updateChatListIndicators(), 200);
               } else {
                 console.error('[ChatMarker] Failed to unmark chat');
                 showToast('❌ Failed to unmark chat');
@@ -331,7 +332,8 @@ async function markCurrentChat() {
               if (saveResponse && saveResponse.success) {
                 console.log('[ChatMarker] Chat marked successfully:', chatName);
                 showToast(`✅ Chat "${chatName}" marked`);
-                updateChatListIndicators(); // Refresh indicators
+                // Delay to let DOM settle before updating indicators
+                setTimeout(() => updateChatListIndicators(), 200);
               } else {
                 console.error('[ChatMarker] Failed to mark chat:', saveResponse?.error);
                 showToast('❌ Failed to mark chat');
@@ -395,7 +397,8 @@ async function toggleChatLabel(labelName) {
                 console.error('[ChatMarker] Failed to update labels');
                 showToast('❌ Failed to update label');
               } else {
-                updateChatListIndicators(); // Refresh indicators
+                // Delay to let DOM settle before updating indicators
+                setTimeout(() => updateChatListIndicators(), 200);
               }
             }
           );
@@ -418,7 +421,8 @@ async function toggleChatLabel(labelName) {
             (saveResponse) => {
               if (saveResponse && saveResponse.success) {
                 showToast(`✅ Chat marked with "${labelName}" label`);
-                updateChatListIndicators(); // Refresh indicators
+                // Delay to let DOM settle before updating indicators
+                setTimeout(() => updateChatListIndicators(), 200);
               } else {
                 showToast('❌ Failed to mark chat');
               }
@@ -672,7 +676,8 @@ function showInlineNoteModal(chatMarker) {
         if (response && response.success) {
           showToast('✅ Note saved');
           closeModal();
-          updateChatListIndicators(); // Refresh indicators
+          // Delay to let DOM settle before updating indicators
+          setTimeout(() => updateChatListIndicators(), 200);
         } else {
           showToast('❌ Failed to save note');
         }
@@ -897,7 +902,8 @@ function showInlineReminderModal(chatMarker) {
           const date = new Date(reminderTime);
           showToast(`✅ Reminder set for ${date.toLocaleString()}`);
           closeModal();
-          updateChatListIndicators(); // Refresh indicators
+          // Delay to let DOM settle before updating indicators
+          setTimeout(() => updateChatListIndicators(), 200);
         } else {
           showToast('❌ Failed to set reminder');
         }

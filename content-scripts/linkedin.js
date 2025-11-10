@@ -190,7 +190,7 @@ async function markCurrentChat() {
       console.log('[ChatMarker] Chat unmarked successfully');
 
       // Update indicators
-      updateChatListIndicators();
+      setTimeout(() => updateChatListIndicators(), 200);
     } else {
       // Not marked - mark it
       const chatMarker = {
@@ -213,7 +213,7 @@ async function markCurrentChat() {
       console.log('[ChatMarker] Chat marked successfully');
 
       // Update indicators
-      updateChatListIndicators();
+      setTimeout(() => updateChatListIndicators(), 200);
     }
   } catch (error) {
     console.error('[ChatMarker] Error marking chat:', error);
@@ -285,7 +285,7 @@ async function toggleChatLabel(labelId) {
     console.log('[ChatMarker] Label toggled successfully');
 
     // Update indicators
-    updateChatListIndicators();
+    setTimeout(() => updateChatListIndicators(), 200);
   } catch (error) {
     console.error('[ChatMarker] Error toggling label:', error);
     showToast('❌ Error updating label', 'error');
@@ -345,7 +345,7 @@ async function openChatNoteEditor() {
       });
 
       showToast('📝 Note saved successfully');
-      updateChatListIndicators();
+      setTimeout(() => updateChatListIndicators(), 200);
     });
 
   } catch (error) {
@@ -421,7 +421,7 @@ async function openChatReminderPicker() {
       });
 
       showToast('⏰ Reminder set successfully');
-      updateChatListIndicators();
+      setTimeout(() => updateChatListIndicators(), 200);
     });
 
   } catch (error) {
@@ -447,12 +447,12 @@ function setupChatListObserver() {
   console.log('[ChatMarker] Found chat list, setting up observer');
 
   // Initial update
-  updateChatListIndicators();
+  setTimeout(() => updateChatListIndicators(), 200);
 
   // Set up observer for future changes
   chatListObserver = new MutationObserver((mutations) => {
     console.log('[ChatMarker] Chat list changed, updating indicators');
-    updateChatListIndicators();
+    setTimeout(() => updateChatListIndicators(), 200);
   });
 
   chatListObserver.observe(chatList, {

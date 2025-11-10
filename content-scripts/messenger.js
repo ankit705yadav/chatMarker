@@ -257,12 +257,12 @@ function setupChatListObserver() {
 
   // Initial update
   setTimeout(() => {
-    updateChatListIndicators();
+    setTimeout(() => updateChatListIndicators(), 200);
   }, 1000);
 
   // Set up MutationObserver to watch for chat list changes
   const observer = new MutationObserver(() => {
-    updateChatListIndicators();
+    setTimeout(() => updateChatListIndicators(), 200);
   });
 
   // Observe the entire document body for changes (Facebook is highly dynamic)
@@ -406,7 +406,7 @@ function setupMessageListener() {
         break;
       case 'chatMarkerUpdated':
         // Refresh indicators when markers are updated
-        updateChatListIndicators();
+        setTimeout(() => updateChatListIndicators(), 200);
         break;
     }
 
@@ -492,7 +492,7 @@ function handleAddLabel(labelId) {
         },
         (response) => {
           if (response && response.success) {
-            updateChatListIndicators();
+            setTimeout(() => updateChatListIndicators(), 200);
           }
         }
       );
@@ -544,7 +544,7 @@ function handleMarkChat() {
           (response) => {
             if (response && response.success) {
               showToast('⭐ Chat marked');
-              updateChatListIndicators();
+              setTimeout(() => updateChatListIndicators(), 200);
             } else {
               showToast('❌ Failed to mark chat');
             }
@@ -569,7 +569,7 @@ function showChatMarkerOptions(chatMarker) {
       (response) => {
         if (response && response.success) {
           showToast('✓ Chat unmarked');
-          updateChatListIndicators();
+          setTimeout(() => updateChatListIndicators(), 200);
         } else {
           showToast('❌ Failed to unmark chat');
         }
@@ -797,7 +797,7 @@ function showInlineNoteModal(chatMarker) {
         if (response && response.success) {
           showToast('✅ Note saved');
           closeModal();
-          updateChatListIndicators();
+          setTimeout(() => updateChatListIndicators(), 200);
         } else {
           showToast('❌ Failed to save note');
         }
@@ -1026,7 +1026,7 @@ function showInlineReminderModal(chatMarker) {
           const date = new Date(reminderTime);
           showToast(`✅ Reminder set for ${date.toLocaleString()}`);
           closeModal();
-          updateChatListIndicators();
+          setTimeout(() => updateChatListIndicators(), 200);
         } else {
           showToast('❌ Failed to set reminder');
         }
