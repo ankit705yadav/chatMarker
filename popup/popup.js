@@ -769,6 +769,7 @@ function setupEventListeners() {
         const result = await signOut();
         if (result.success) {
           console.log('[ChatMarker] User signed out successfully');
+          closeSettingsModal();
         }
       }
     });
@@ -1086,6 +1087,15 @@ async function saveReminderFromModal(minutes = null) {
       reminderTime = new Date(customReminderDate.value).getTime();
     }
 
+    // Find the chat marker to get chat name and platform
+    const chatMarker = allChatMarkers.find(m => m.chatMarkerId === currentEditingNoteId);
+
+    if (!chatMarker) {
+      console.error('[ChatMarker Popup] Chat marker not found for reminder');
+      showToast('❌ Error: Chat not found');
+      return;
+    }
+
     // Check if reminder already exists for this message
     const existingReminder = Object.values(allReminders).find(
       r => r.messageId === currentEditingNoteId && r.active && !r.firedAt
@@ -1098,6 +1108,9 @@ async function saveReminderFromModal(minutes = null) {
       reminderData = {
         ...existingReminder,
         reminderTime: reminderTime,
+        chatName: chatMarker.chatName,
+        platform: chatMarker.platform,
+        chatId: chatMarker.chatId,
         updatedAt: Date.now()
       };
     } else {
@@ -1105,6 +1118,9 @@ async function saveReminderFromModal(minutes = null) {
       reminderData = {
         messageId: currentEditingNoteId,
         reminderTime: reminderTime,
+        chatName: chatMarker.chatName,
+        platform: chatMarker.platform,
+        chatId: chatMarker.chatId,
         active: true,
         createdAt: Date.now()
       };

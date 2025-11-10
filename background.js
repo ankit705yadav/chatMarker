@@ -998,6 +998,34 @@ function createContextMenus() {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('[ChatMarker] Context menu clicked:', info.menuItemId);
 
+  // Check if user is authenticated
+  const { currentUser } = await chrome.storage.local.get(['currentUser']);
+
+  if (!currentUser) {
+    console.log('[ChatMarker] User not authenticated, showing notification');
+
+    // Show notification to sign in
+    chrome.notifications.create('auth_required', {
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: '🔒 Sign In Required',
+      message: 'Please sign in to use ChatMarker features.',
+      priority: 2,
+      requireInteraction: false
+    });
+
+    // Open side panel to auth screen
+    try {
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+    } catch (error) {
+      console.error('[ChatMarker] Error opening side panel:', error);
+    }
+
+    return; // Stop execution
+  }
+
+  console.log('[ChatMarker] User authenticated:', currentUser.email);
+
   // Normalize platform-specific menu IDs by removing '-facebook', '-reddit', '-instagram', or '-linkedin' suffix
   // This allows content scripts to handle both regular and platform-specific menus with same logic
   let menuItemId = info.menuItemId;
