@@ -18,11 +18,17 @@ console.log('[ChatMarker] LinkedIn content script initializing...');
 const PLATFORM = 'linkedin';
 
 const SELECTORS = {
-  // Chat list
+  // Full-screen chat list (messaging page)
   chatList: 'ul.msg-conversations-container__conversations-list',
   chatItem: 'div.msg-conversation-listitem__link',
   chatName: 'h3.msg-conversation-listitem__participant-names span.truncate',
   timeStamp: 'time.msg-conversation-card__time-stamp',
+
+  // Floating chat overlay
+  chatListFloating: 'section.msg-overlay-list-bubble__content',
+  chatItemFloating: '.msg-conversation-listitem__link.msg-overlay-list-bubble__convo-item--v2',
+  chatNameFloating: 'h3.msg-conversation-listitem__participant-names span.truncate',
+  timeStampFloating: '.msg-overlay-list-bubble-item__time-stamp',
 
   // For finding parent containers
   chatContainer: 'div.msg-conversation-listitem__link'
@@ -32,6 +38,7 @@ const SELECTORS = {
 
 let lastRightClickedElement = null;
 let chatListObserver = null;
+let floatingChatObserver = null;
 
 // ==================== INITIALIZATION ====================
 
@@ -44,8 +51,9 @@ function init() {
   // Set up right-click capture
   setupContextMenuCapture();
 
-  // Set up chat list observer
+  // Set up chat list observers (both full-screen and floating)
   setupChatListObserver();
+  setupFloatingChatObserver();
 
   // Listen for context menu actions from background
   chrome.runtime.onMessage.addListener(handleContextMenuAction);
@@ -102,9 +110,9 @@ function getChatNameFromRightClick() {
   let depth = 0;
   const maxDepth = 20;
 
-  // Traverse up to find chat container
+  // Traverse up to find chat container (works for both full-screen and floating)
   while (element && depth < maxDepth) {
-    // Check if this is a chat item container
+    // Check if this is a chat item container (both full-screen and floating have this class)
     if (element.classList && element.classList.contains('msg-conversation-listitem__link')) {
       // Found chat container, now find the chat name
       const nameElement = element.querySelector('h3.msg-conversation-listitem__participant-names span.truncate');
@@ -433,25 +441,25 @@ async function openChatReminderPicker() {
 // ==================== CHAT LIST INDICATORS ====================
 
 /**
- * Set up MutationObserver to watch for chat list changes
+ * Set up MutationObserver to watch for full-screen chat list changes
  */
 function setupChatListObserver() {
   const chatList = document.querySelector(SELECTORS.chatList);
 
   if (!chatList) {
-    console.log('[ChatMarker] Chat list not found yet, will retry...');
+    console.log('[ChatMarker] Full-screen chat list not found yet, will retry...');
     setTimeout(setupChatListObserver, 2000);
     return;
   }
 
-  console.log('[ChatMarker] Found chat list, setting up observer');
+  console.log('[ChatMarker] Found full-screen chat list, setting up observer');
 
   // Initial update
   setTimeout(() => updateChatListIndicators(), 200);
 
   // Set up observer for future changes
   chatListObserver = new MutationObserver((mutations) => {
-    console.log('[ChatMarker] Chat list changed, updating indicators');
+    console.log('[ChatMarker] Full-screen chat list changed, updating indicators');
     setTimeout(() => updateChatListIndicators(), 200);
   });
 
@@ -460,7 +468,39 @@ function setupChatListObserver() {
     subtree: true
   });
 
-  console.log('[ChatMarker] ✅ Chat list observer active');
+  console.log('[ChatMarker] ✅ Full-screen chat list observer active');
+}
+
+/**
+ * Set up MutationObserver to watch for floating chat overlay changes
+ */
+function setupFloatingChatObserver() {
+  // Check if floating chat exists
+  const floatingChat = document.querySelector(SELECTORS.chatListFloating);
+
+  if (!floatingChat) {
+    console.log('[ChatMarker] Floating chat not found yet, will retry...');
+    setTimeout(setupFloatingChatObserver, 2000);
+    return;
+  }
+
+  console.log('[ChatMarker] Found floating chat, setting up observer');
+
+  // Initial update
+  setTimeout(() => updateChatListIndicators(), 200);
+
+  // Set up observer for future changes
+  floatingChatObserver = new MutationObserver((mutations) => {
+    console.log('[ChatMarker] Floating chat changed, updating indicators');
+    setTimeout(() => updateChatListIndicators(), 200);
+  });
+
+  floatingChatObserver.observe(floatingChat, {
+    childList: true,
+    subtree: true
+  });
+
+  console.log('[ChatMarker] ✅ Floating chat observer active');
 }
 
 /**
@@ -490,7 +530,7 @@ async function updateChatListIndicators() {
     console.log('[ChatMarker] Found', chatItems.length, 'chat items in list');
 
     // Update each chat item
-    chatItems.forEach(({ element, name }) => {
+    chatItems.forEach(({ element, name, type }) => {
       // Remove existing indicators first
       const existingIndicators = element.querySelectorAll('.chatmarker-linkedin-indicator');
       existingIndicators.forEach(ind => ind.remove());
@@ -502,7 +542,7 @@ async function updateChatListIndicators() {
       });
 
       if (marker) {
-        addChatListIndicator(element, marker);
+        addChatListIndicator(element, marker, type);
       }
     });
 
@@ -514,18 +554,39 @@ async function updateChatListIndicators() {
 }
 
 /**
- * Find all chat list items
+ * Find all chat list items (both full-screen and floating)
  */
 function findChatListItems() {
   const chatItems = [];
-  const chatElements = document.querySelectorAll(SELECTORS.chatItem);
 
-  chatElements.forEach(chatElement => {
+  // Find full-screen chat items
+  const fullScreenChatElements = document.querySelectorAll(SELECTORS.chatItem);
+  fullScreenChatElements.forEach(chatElement => {
     const nameElement = chatElement.querySelector(SELECTORS.chatName);
     if (nameElement) {
       const chatName = nameElement.textContent.trim();
       if (chatName && chatName.length > 0) {
-        chatItems.push({ element: chatElement, name: chatName });
+        chatItems.push({
+          element: chatElement,
+          name: chatName,
+          type: 'fullscreen'
+        });
+      }
+    }
+  });
+
+  // Find floating chat items
+  const floatingChatElements = document.querySelectorAll(SELECTORS.chatItemFloating);
+  floatingChatElements.forEach(chatElement => {
+    const nameElement = chatElement.querySelector(SELECTORS.chatNameFloating);
+    if (nameElement) {
+      const chatName = nameElement.textContent.trim();
+      if (chatName && chatName.length > 0) {
+        chatItems.push({
+          element: chatElement,
+          name: chatName,
+          type: 'floating'
+        });
       }
     }
   });
@@ -536,11 +597,13 @@ function findChatListItems() {
 /**
  * Add inline indicator to chat list item (before time)
  */
-function addChatListIndicator(chatElement, chatMarker) {
-  // Find time element
-  const timeElement = chatElement.querySelector(SELECTORS.timeStamp);
+function addChatListIndicator(chatElement, chatMarker, type = 'fullscreen') {
+  // Find time element based on chat type
+  const timeSelector = type === 'floating' ? SELECTORS.timeStampFloating : SELECTORS.timeStamp;
+  const timeElement = chatElement.querySelector(timeSelector);
+
   if (!timeElement) {
-    console.log('[ChatMarker] ⚠️ Could not find time element for indicator');
+    console.log('[ChatMarker] ⚠️ Could not find time element for indicator (type:', type, ')');
     return;
   }
 
