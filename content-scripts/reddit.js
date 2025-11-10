@@ -21,6 +21,13 @@ const SELECTORS = {
   roomsList: 'rs-virtual-scroll[class*="rs-rooms-nav"]',
   roomBanners: "rs-room-banners",
 
+  // Full-screen chat (chat.reddit.com)
+  fullScreenChatList: 'a[aria-label*="Direct chat with"]',
+  fullScreenChatHeader: "header.flex.items-center.h-\\[2\\.75rem\\]",
+  fullScreenUsername: ".text-14.font-sans.font-semibold",
+  fullScreenRoomName: ".room-name",
+  fullScreenLastMessageTime: ".last-message-time",
+
   // Old Reddit messages (fallback)
   oldRedditMessageContainer: ".message",
   oldRedditInbox: '.content[role="main"]',
@@ -139,8 +146,14 @@ async function init() {
     // Detect which Reddit interface we're on
     const isOldReddit = window.location.hostname === "old.reddit.com";
     const isNewReddit = window.location.hostname === "www.reddit.com";
+    const isFullScreenChat = window.location.hostname === "chat.reddit.com";
 
-    if (isNewReddit) {
+    if (isFullScreenChat) {
+      // Wait for full-screen chat to load
+      await waitForElement("body", 5000);
+      console.log("[ChatMarker] Full-screen Reddit Chat detected");
+      console.log("[ChatMarker] Right-click on a chat in the list to mark it");
+    } else if (isNewReddit) {
       // Wait for Reddit to load
       await waitForElement("body", 5000);
       console.log("[ChatMarker] New Reddit detected");
@@ -314,6 +327,18 @@ function getChatNameFromRightClick() {
         );
       }
 
+      // Look for room-name span first (for full-screen chat)
+      if (element.classList?.contains("room-name")) {
+        const name = element.textContent.trim();
+        if (name && name.length > 0) {
+          console.log(
+            "[ChatMarker] ✅ Extracted chat name from room-name span (composedPath):",
+            name,
+          );
+          return name;
+        }
+      }
+
       // Look for <a> element with aria-label
       if (element.tagName === "A") {
         const ariaLabel = element.getAttribute?.("aria-label");
@@ -405,6 +430,19 @@ function getCurrentChatId() {
     return chatId;
   }
 
+  // For chat.reddit.com, check regular DOM first
+  if (window.location.hostname === "chat.reddit.com") {
+    const titleDiv = document.querySelector('div[title][aria-label*="Current chat"]');
+    if (titleDiv) {
+      const username = titleDiv.getAttribute("title");
+      if (username) {
+        const chatId = `reddit_chat_${username}`;
+        console.log("[ChatMarker] Chat ID from title div (full-screen):", chatId);
+        return chatId;
+      }
+    }
+  }
+
   // Method 1: Look for the div with title and aria-label containing "Direct chat" (including Shadow DOM)
   const titleDiv = findInShadowDOM('div[title][aria-label*="Direct chat"]');
   if (titleDiv) {
@@ -494,6 +532,18 @@ function getChatName() {
   const nameFromRightClick = getChatNameFromRightClick();
   if (nameFromRightClick) {
     return nameFromRightClick;
+  }
+
+  // For chat.reddit.com, check regular DOM first
+  if (window.location.hostname === "chat.reddit.com") {
+    const titleDiv = document.querySelector('div[title][aria-label*="Current chat"]');
+    if (titleDiv) {
+      const username = titleDiv.getAttribute("title");
+      if (username) {
+        console.log("[ChatMarker] Found chat name from title div:", username);
+        return username;
+      }
+    }
   }
 
   // Method 1: Look for the div with title attribute (including Shadow DOM)
@@ -1347,12 +1397,24 @@ async function updateChatListIndicators() {
         "Reddit chat markers",
       );
 
-      // Find all chat list items (including in shadow DOM)
-      const chatListItems = findAllInShadowDOM(
-        'a[aria-label*="Direct chat with"]',
+      // Find all chat list items (check both shadow DOM and regular DOM)
+      let chatListItems = [];
+
+      // Try regular DOM first
+      chatListItems = Array.from(
+        document.querySelectorAll('a[aria-label*="Direct chat with"]')
       );
+      console.log("[ChatMarker] Regular DOM search found:", chatListItems.length, "items");
+
+      // If not found in regular DOM, try shadow DOM
+      if (chatListItems.length === 0) {
+        console.log("[ChatMarker] Searching shadow DOM...");
+        chatListItems = findAllInShadowDOM('a[aria-label*="Direct chat with"]');
+        console.log("[ChatMarker] Shadow DOM search found:", chatListItems.length, "items");
+      }
+
       console.log(
-        "[ChatMarker] Found",
+        "[ChatMarker] Total found:",
         chatListItems.length,
         "chat list items",
       );
@@ -1505,8 +1567,19 @@ function setupOpenChatObserver() {
 async function updateOpenChatIndicator() {
   console.log("[ChatMarker] Updating open chat indicator...");
 
-  // Find the chat header (including in shadow DOM)
-  const chatHeader = findInShadowDOM("header.flex.items-center.h-\\[2\\.75rem\\]");
+  // Find the chat header (check both regular DOM and shadow DOM)
+  let chatHeader = null;
+
+  // Try regular DOM first
+  chatHeader = document.querySelector("header.flex.items-center.h-\\[2\\.75rem\\]");
+  console.log("[ChatMarker] Regular DOM header search:", !!chatHeader);
+
+  // If not found in regular DOM, try shadow DOM
+  if (!chatHeader) {
+    console.log("[ChatMarker] Searching shadow DOM for header...");
+    chatHeader = findInShadowDOM("header.flex.items-center.h-\\[2\\.75rem\\]");
+    console.log("[ChatMarker] Shadow DOM header search:", !!chatHeader);
+  }
 
   if (!chatHeader) {
     console.log("[ChatMarker] No open chat window found");
@@ -1514,15 +1587,16 @@ async function updateOpenChatIndicator() {
   }
 
   // Extract username from the header
+  let username = null;
+
+  // Try to find div with title attribute
   const titleDiv = chatHeader.querySelector("div[title]");
-  if (!titleDiv) {
-    console.log("[ChatMarker] No title div found in chat header");
-    return;
+  if (titleDiv) {
+    username = titleDiv.getAttribute("title");
   }
 
-  const username = titleDiv.getAttribute("title");
   if (!username) {
-    console.log("[ChatMarker] No username found in title attribute");
+    console.log("[ChatMarker] No username found in chat header");
     return;
   }
 

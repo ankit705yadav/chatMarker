@@ -20,6 +20,7 @@
     "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
     "https://old.reddit.com/*",
+    "https://chat.reddit.com/*",
     "https://*.firebaseapp.com/*",
     "https://*.googleapis.com/*"
   ],
@@ -52,7 +53,7 @@
       "run_at": "document_end"
     },
     {
-      "matches": ["https://www.reddit.com/*", "https://old.reddit.com/*"],
+      "matches": ["https://www.reddit.com/*", "https://old.reddit.com/*", "https://chat.reddit.com/*"],
       "js": ["content-scripts/reddit.js"],
       "css": ["styles/common.css", "styles/reddit.css"],
       "run_at": "document_end"

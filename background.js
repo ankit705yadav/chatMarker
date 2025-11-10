@@ -615,7 +615,8 @@ function createContextMenus() {
       contexts: ['all'],
       documentUrlPatterns: [
         'https://www.reddit.com/*',
-        'https://old.reddit.com/*'
+        'https://old.reddit.com/*',
+        'https://chat.reddit.com/*'
       ]
     });
 
