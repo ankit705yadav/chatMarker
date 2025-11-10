@@ -16,10 +16,8 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS = {
   theme: 'auto', // 'light', 'dark', 'auto'
   markIcon: 'star', // 'star', 'flag', 'bookmark', 'dot'
-  notificationSound: true,
   defaultView: 'popup', // 'popup', 'dashboard'
   fontSize: 'medium', // 'small', 'medium', 'large'
-  compactMode: false,
   autoCategorizationEnabled: false
 };
 

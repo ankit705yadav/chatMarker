@@ -148,24 +148,26 @@ function showAuthScreen() {
   console.log('[ChatMarker Auth] showAuthScreen() called');
   const dashboardContainer = document.getElementById('container') || document.querySelector('.dashboard-container');
   const authContainer = document.getElementById('authContainer');
+  const cloudSyncSection = document.getElementById('cloudSyncSection');
+  const signOutBtn = document.getElementById('signOutBtn');
 
   if (dashboardContainer) dashboardContainer.style.display = 'none';
   if (authContainer) authContainer.style.display = 'flex';
+  if (cloudSyncSection) cloudSyncSection.style.display = 'none';
+  if (signOutBtn) signOutBtn.style.display = 'none';
 }
 
 function showMainApp() {
   console.log('[ChatMarker Auth] showMainApp() called');
   const dashboardContainer = document.getElementById('container') || document.querySelector('.dashboard-container');
   const authContainer = document.getElementById('authContainer');
+  const cloudSyncSection = document.getElementById('cloudSyncSection');
   const signOutBtn = document.getElementById('signOutBtn');
-  const syncUploadBtn = document.getElementById('syncUploadBtn');
-  const syncDownloadBtn = document.getElementById('syncDownloadBtn');
 
   if (authContainer) authContainer.style.display = 'none';
   if (dashboardContainer) dashboardContainer.style.display = 'flex';
+  if (cloudSyncSection) cloudSyncSection.style.display = 'block';
   if (signOutBtn) signOutBtn.style.display = 'block';
-  if (syncUploadBtn) syncUploadBtn.style.display = 'block';
-  if (syncDownloadBtn) syncDownloadBtn.style.display = 'block';
 
   // Load user's markers
   console.log('[ChatMarker Auth] Loading user markers...');

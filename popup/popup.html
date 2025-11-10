@@ -82,23 +82,11 @@
     </div>
     <div class="header-right">
       <span id="syncStatus" class="sync-status" style="display: none;"></span>
-      <button class="icon-button" id="syncUploadBtn" title="Upload to Cloud" style="display: none;">
-        <span>⬆️</span>
-      </button>
-      <button class="icon-button" id="syncDownloadBtn" title="Download from Cloud" style="display: none;">
-        <span>⬇️</span>
-      </button>
       <button class="icon-button" id="statsBtn" title="Statistics">
         <span>📊</span>
       </button>
       <button class="icon-button" id="settingsBtn" title="Settings">
         <span>⚙️</span>
-      </button>
-      <button class="icon-button" id="themeToggle" title="Toggle Dark Mode">
-        <span id="themeIcon">🌙</span>
-      </button>
-      <button class="icon-button" id="signOutBtn" title="Sign Out" style="display: none;">
-        <span>🚪</span>
       </button>
     </div>
   </header>
@@ -266,20 +254,12 @@
               <option value="dark">Dark</option>
             </select>
           </div>
+        </div>
 
-          <div class="setting-item">
-            <label>
-              <input type="checkbox" id="notificationSound">
-              <span>Enable notification sound</span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <label>
-              <input type="checkbox" id="compactMode">
-              <span>Compact mode (show more items)</span>
-            </label>
-          </div>
+        <div class="settings-section" id="cloudSyncSection" style="display: none;">
+          <h3>Cloud Sync</h3>
+          <button class="btn-secondary" id="syncUploadBtn">⬆️ Upload to Cloud</button>
+          <button class="btn-secondary" id="syncDownloadBtn">⬇️ Download from Cloud</button>
         </div>
 
         <div class="settings-section">
@@ -299,6 +279,7 @@
         </div>
       </div>
       <div class="modal-footer">
+        <button class="btn-danger" id="signOutBtn" style="display: none; margin-right: auto;">🚪 Sign Out</button>
         <button class="btn-primary" id="saveSettings">Save Settings</button>
       </div>
     </div>

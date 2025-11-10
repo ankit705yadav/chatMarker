@@ -48,10 +48,8 @@ async function initializeExtension() {
   const defaultSettings = {
     theme: 'auto',
     markIcon: 'star',
-    notificationSound: true,
     defaultView: 'popup',
     fontSize: 'medium',
-    compactMode: false,
     autoCategorizationEnabled: false
   };
 
@@ -76,12 +74,16 @@ async function initializeExtension() {
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log('[ChatMarker] ⏰ ALARM TRIGGERED:', alarm.name, 'at', new Date());
+  console.log('[ChatMarker] Alarm details:', alarm);
 
   if (alarm.name.startsWith('reminder_')) {
-    console.log('[ChatMarker] Handling reminder alarm...');
+    console.log('[ChatMarker] This is a reminder alarm, handling...');
     await handleReminder(alarm.name);
   } else if (alarm.name === 'daily_cleanup') {
+    console.log('[ChatMarker] This is a cleanup alarm, handling...');
     await performDailyCleanup();
+  } else {
+    console.log('[ChatMarker] Unknown alarm type:', alarm.name);
   }
 });
 
@@ -110,35 +112,37 @@ async function handleReminder(reminderId) {
 
     console.log('[ChatMarker] Creating notification...');
 
-    // Create notification using Service Worker Notifications API
-    const notificationTitle = 'ChatMarker Reminder ⏰';
-    const notificationBody = reminder.notificationText || (marker && marker.messageText) || 'You have a reminder';
-    const contextInfo = marker ? `${marker.sender} (${capitalizeFirst(marker.platform)})` : `${reminder.sender} (${capitalizeFirst(reminder.platform)})`;
+    // Create notification using Chrome Notifications API
+    const notificationTitle = '🔔 ChatMarker Reminder';
+    const chatName = reminder.chatName || 'Unknown Chat';
+
+    // Get note from marker if available
+    let noteText = '';
+    if (marker && marker.notes) {
+      noteText = marker.notes.length > 100 ? marker.notes.substring(0, 100) + '...' : marker.notes;
+    }
 
     const notificationOptions = {
-      body: `${notificationBody}\n\n${contextInfo}`,
-      icon: chrome.runtime.getURL('icons/icon48.png'),
-      badge: chrome.runtime.getURL('icons/icon48.png'),
-      tag: reminderId,
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: notificationTitle,
+      message: chatName + (noteText ? `\n${noteText}` : ''),
+      priority: 2,
       requireInteraction: true,
-      data: {
-        reminderId: reminderId,
-        messageId: reminder.messageId
-      },
-      actions: [
-        { action: 'view', title: 'View Message' },
-        { action: 'snooze', title: 'Snooze 1h' }
+      silent: false,  // Explicitly enable sound
+      buttons: [
+        { title: 'View Chat' }
       ]
     };
 
-    // Use Service Worker registration to show notification
-    self.registration.showNotification(notificationTitle, notificationOptions)
-      .then(() => {
-        console.log('[ChatMarker] ✅ Notification created successfully');
-      })
-      .catch((error) => {
-        console.error('[ChatMarker] ❌ Notification failed:', error);
-      });
+    // Use Chrome Notifications API
+    chrome.notifications.create(reminderId, notificationOptions, (notificationId) => {
+      if (chrome.runtime.lastError) {
+        console.error('[ChatMarker] ❌ Notification failed:', chrome.runtime.lastError);
+      } else {
+        console.log('[ChatMarker] ✅ Notification created successfully:', notificationId);
+      }
+    });
 
     // Update badge to show pending reminders
     await updateBadge();
@@ -153,36 +157,89 @@ async function handleReminder(reminderId) {
 }
 
 /**
- * Handle notification action button clicks (Service Worker API)
+ * Handle notification button clicks (Chrome Notifications API)
  */
-self.addEventListener('notificationclick', async (event) => {
-  console.log('[ChatMarker] Notification clicked:', event.action, event.notification.tag);
+chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+  console.log('[ChatMarker] Notification button clicked:', notificationId, 'button:', buttonIndex);
 
-  event.notification.close();
+  if (!notificationId || !notificationId.startsWith('reminder_')) return;
 
-  const reminderId = event.notification.tag;
-  if (!reminderId || !reminderId.startsWith('reminder_')) return;
-
-  const reminder = await getReminder(reminderId);
+  const reminder = await getReminder(notificationId);
   if (!reminder) {
-    console.log('[ChatMarker] Reminder not found:', reminderId);
+    console.log('[ChatMarker] Reminder not found:', notificationId);
     return;
   }
 
-  if (event.action === 'view') {
-    // View Message action
-    console.log('[ChatMarker] View message action clicked');
-    await navigateToMessage(reminder.messageId);
-  } else if (event.action === 'snooze') {
-    // Snooze 1 hour action
-    console.log('[ChatMarker] Snooze action clicked');
-    await snoozeReminder(reminderId, 60); // 60 minutes
-  } else {
-    // Body click (no specific action)
-    console.log('[ChatMarker] Notification body clicked');
-    await navigateToMessage(reminder.messageId);
+  if (buttonIndex === 0) {
+    // Button 0: "View Chat" - open platform main page
+    console.log('[ChatMarker] View chat button clicked');
+    await navigateToChatByReminder(reminder);
+    chrome.notifications.clear(notificationId);
   }
 });
+
+/**
+ * Handle notification body click (Chrome Notifications API)
+ */
+chrome.notifications.onClicked.addListener(async (notificationId) => {
+  console.log('[ChatMarker] Notification body clicked:', notificationId);
+
+  if (!notificationId || !notificationId.startsWith('reminder_')) return;
+
+  const reminder = await getReminder(notificationId);
+  if (!reminder) {
+    console.log('[ChatMarker] Reminder not found:', notificationId);
+    return;
+  }
+
+  // Navigate to the platform main page
+  await navigateToChatByReminder(reminder);
+  chrome.notifications.clear(notificationId);
+});
+
+/**
+ * Navigate to chat by reminder data
+ */
+async function navigateToChatByReminder(reminder) {
+  try {
+    // Determine the URL based on platform
+    let url = '';
+    switch (reminder.platform) {
+      case 'whatsapp':
+        url = 'https://web.whatsapp.com/';
+        break;
+      case 'messenger':
+      case 'facebook':
+        url = 'https://www.facebook.com/';
+        break;
+      case 'instagram':
+        url = 'https://www.instagram.com/';
+        break;
+      case 'linkedin':
+        url = 'https://www.linkedin.com/';
+        break;
+      case 'reddit':
+        url = 'https://www.reddit.com/';
+        break;
+    }
+
+    if (!url) return;
+
+    // Find or create a tab for the platform
+    const tabs = await chrome.tabs.query({ url: url + '*' });
+
+    if (tabs.length > 0) {
+      // Platform tab exists, switch to it
+      await chrome.tabs.update(tabs[0].id, { active: true });
+      await chrome.windows.update(tabs[0].windowId, { focused: true });
+    } else {
+      // Create new tab
+      await chrome.tabs.create({ url: url });
+    }
+  } catch (error) {
+    console.error('[ChatMarker] Error navigating to chat:', error);
+  }
+}
 
 /**
  * Navigate to a message in its platform
@@ -359,14 +416,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.log('[ChatMarker] Reminder saved:', reminder.reminderId);
 
           // Create Chrome alarm
+          const alarmTime = reminder.reminderTime;
+          const now = Date.now();
+          const timeUntilAlarm = alarmTime - now;
+
+          console.log('[ChatMarker] Creating alarm:', reminder.reminderId);
+          console.log('[ChatMarker] Current time:', now, new Date());
+          console.log('[ChatMarker] Alarm time:', alarmTime, new Date(alarmTime));
+          console.log('[ChatMarker] Time until alarm (ms):', timeUntilAlarm);
+          console.log('[ChatMarker] Time until alarm (minutes):', Math.floor(timeUntilAlarm / 60000));
+
+          // Chrome alarms have a minimum delay of 1 minute
+          if (timeUntilAlarm < 60000) {
+            console.warn('[ChatMarker] ⚠️ WARNING: Alarm is less than 1 minute away!');
+            console.warn('[ChatMarker] ⚠️ Chrome alarms require minimum 1 minute delay');
+            console.warn('[ChatMarker] ⚠️ This alarm may not fire!');
+          }
+
           chrome.alarms.create(reminder.reminderId, {
-            when: reminder.reminderTime
+            when: alarmTime
+          }, () => {
+            if (chrome.runtime.lastError) {
+              console.error('[ChatMarker] Failed to create alarm:', chrome.runtime.lastError);
+              sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              console.log('[ChatMarker] ✅ Chrome alarm created successfully');
+              // Verify alarm was created
+              chrome.alarms.get(reminder.reminderId, (alarm) => {
+                if (alarm) {
+                  console.log('[ChatMarker] ✅ Verified alarm exists:', alarm);
+                  console.log('[ChatMarker] Alarm scheduled for:', new Date(alarm.scheduledTime).toLocaleString());
+                } else {
+                  console.error('[ChatMarker] ❌ ERROR: Alarm was not found after creation!');
+                  console.error('[ChatMarker] This may happen if alarm was < 1 minute in the future');
+                }
+              });
+
+              sendResponse({ success: true, reminder });
+            }
           });
-          console.log('[ChatMarker] Chrome alarm created for:', new Date(reminder.reminderTime));
 
           await updateBadge();
-          sendResponse({ success: true, reminder });
-          break;
+          return true; // Will respond asynchronously
 
         case 'deleteReminder':
           await deleteReminder(request.reminderId);
@@ -384,6 +475,83 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           await navigateToMessage(request.messageId);
           sendResponse({ success: true });
           break;
+
+        case 'testNotification':
+          // Test notification immediately
+          console.log('[ChatMarker] Testing notification...');
+          chrome.notifications.create('test_notification', {
+            type: 'basic',
+            iconUrl: 'icons/icon128.png',
+            title: '🔔 ChatMarker Test',
+            message: 'Test Chat\nThis is a test notification',
+            priority: 2,
+            requireInteraction: true,
+            silent: false  // Explicitly enable sound
+          }, (notificationId) => {
+            if (chrome.runtime.lastError) {
+              console.error('[ChatMarker] Test notification failed:', chrome.runtime.lastError);
+              sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              console.log('[ChatMarker] ✅ Test notification created:', notificationId);
+              sendResponse({ success: true });
+            }
+          });
+          return true; // Will respond asynchronously
+
+        case 'checkAlarms':
+          // Check all active alarms
+          chrome.alarms.getAll((alarms) => {
+            console.log('[ChatMarker] Active alarms:', alarms);
+            sendResponse({ success: true, alarms });
+          });
+          return true; // Will respond asynchronously
+
+        case 'testReminderIn1Min':
+          // Create a test reminder that fires in 1 minute (Chrome alarms minimum)
+          console.log('[ChatMarker] Creating test reminder for 1 minute from now...');
+          const testReminderId = `reminder_test_${Date.now()}`;
+          const testReminderTime = Date.now() + 60000; // 1 minute from now
+
+          const testReminder = {
+            reminderId: testReminderId,
+            platform: 'test',
+            chatId: 'test_chat',
+            chatName: 'Test Chat',
+            reminderTime: testReminderTime,
+            active: true,
+            createdAt: Date.now()
+          };
+
+          // Save reminder
+          await saveReminder(testReminder);
+          console.log('[ChatMarker] Test reminder saved to storage');
+
+          // Create alarm
+          chrome.alarms.create(testReminderId, {
+            when: testReminderTime
+          }, () => {
+            if (chrome.runtime.lastError) {
+              console.error('[ChatMarker] Failed to create test alarm:', chrome.runtime.lastError);
+              sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              console.log('[ChatMarker] ✅ Test alarm created! Will fire in 1 minute');
+              console.log('[ChatMarker] Current time:', new Date().toLocaleTimeString());
+              console.log('[ChatMarker] Alarm will fire at:', new Date(testReminderTime).toLocaleTimeString());
+              console.log('[ChatMarker] Watch for "⏰ ALARM TRIGGERED" message in console...');
+
+              // Verify alarm was created
+              chrome.alarms.get(testReminderId, (alarm) => {
+                if (alarm) {
+                  console.log('[ChatMarker] ✅ Verified: Alarm exists in Chrome:', alarm);
+                } else {
+                  console.error('[ChatMarker] ❌ ERROR: Alarm not found after creation!');
+                }
+              });
+
+              sendResponse({ success: true, message: 'Test reminder set for 1 minute. Check console logs.' });
+            }
+          });
+          return true; // Will respond asynchronously
 
         case 'saveChatMarker':
           const chatMarker = await saveChatMarker(request.data);

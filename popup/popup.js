@@ -18,8 +18,6 @@ const messageList = document.getElementById('messageList');
 const loadingState = document.getElementById('loadingState');
 const emptyState = document.getElementById('emptyState');
 const noResultsState = document.getElementById('noResultsState');
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
 const statsBtn = document.getElementById('statsBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 
@@ -763,9 +761,6 @@ function setupEventListeners() {
     });
   });
 
-  // Theme toggle
-  themeToggle.addEventListener('click', toggleTheme);
-
   // Sign out
   const signOutBtn = document.getElementById('signOutBtn');
   if (signOutBtn) {
@@ -818,7 +813,7 @@ function setupEventListeners() {
   closeSettings.addEventListener('click', closeSettingsModal);
 
   document.getElementById('saveSettings')?.addEventListener('click', saveSettings);
-  document.getElementById('exportDataBtn')?.addEventListener('click', showExportModal);
+  document.getElementById('exportDataBtn')?.addEventListener('click', exportToJSON);
   document.getElementById('importDataBtn')?.addEventListener('click', () => {
     document.getElementById('importFileInput').click();
   });
@@ -1115,14 +1110,20 @@ async function saveReminderFromModal(minutes = null) {
       };
     }
 
-    // Save reminder (will replace existing one with same ID)
-    await saveReminder(reminderData);
-
-    showToast('✅ Reminder set successfully');
-    closeReminderModal();
-
-    // Reload markers to update UI
-    await loadMarkers();
+    // Send to background to create alarm
+    chrome.runtime.sendMessage({
+      action: 'createReminder',
+      data: reminderData
+    }, (response) => {
+      if (response && response.success) {
+        showToast('✅ Reminder set successfully');
+        closeReminderModal();
+        loadMarkers();
+      } else {
+        console.error('[ChatMarker Popup] Error from background:', response);
+        showToast('❌ Error setting reminder');
+      }
+    });
 
   } catch (error) {
     console.error('[ChatMarker Popup] Error saving reminder:', error);
@@ -1143,10 +1144,19 @@ async function deleteExistingReminder() {
     );
 
     if (existingReminder) {
-      await deleteReminder(existingReminder.reminderId);
-      showToast('✅ Reminder deleted');
-      closeReminderModal();
-      await loadMarkers();
+      // Send to background to clear alarm
+      chrome.runtime.sendMessage({
+        action: 'deleteReminder',
+        reminderId: existingReminder.reminderId
+      }, (response) => {
+        if (response && response.success) {
+          showToast('✅ Reminder deleted');
+          closeReminderModal();
+          loadMarkers();
+        } else {
+          showToast('❌ Error deleting reminder');
+        }
+      });
     }
 
   } catch (error) {
@@ -1314,8 +1324,6 @@ async function openSettings() {
 
   // Apply to form
   document.getElementById('themeSelect').value = settings.theme || 'auto';
-  document.getElementById('notificationSound').checked = settings.notificationSound !== false;
-  document.getElementById('compactMode').checked = settings.compactMode === true;
 
   // Show modal
   settingsModal.style.display = 'flex';
@@ -1334,9 +1342,7 @@ function closeSettingsModal() {
 async function saveSettings() {
   try {
     const newSettings = {
-      theme: document.getElementById('themeSelect').value,
-      notificationSound: document.getElementById('notificationSound').checked,
-      compactMode: document.getElementById('compactMode').checked
+      theme: document.getElementById('themeSelect').value
     };
 
     await updateSettings(newSettings);
@@ -1351,57 +1357,6 @@ async function saveSettings() {
     console.error('[ChatMarker Popup] Error saving settings:', error);
     showToast('Error saving settings');
   }
-}
-
-/**
- * Show export format modal
- */
-function showExportModal() {
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.style.display = 'flex';
-  modal.innerHTML = `
-    <div class="modal-content" style="max-width: 400px;">
-      <div class="modal-header">
-        <h2>Export Data</h2>
-        <button class="modal-close" id="closeExportModal">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="margin-bottom: 16px; color: var(--color-text-secondary);">
-          Choose export format:
-        </p>
-        <button class="btn-primary" id="exportJsonBtn" style="width: 100%; margin-bottom: 8px;">
-          📄 Export as JSON
-        </button>
-        <button class="btn-primary" id="exportCsvBtn" style="width: 100%; margin-bottom: 8px;">
-          📊 Export as CSV
-        </button>
-        <button class="btn-primary" id="exportMarkdownBtn" style="width: 100%;">
-          📝 Export as Markdown
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  // Event listeners
-  modal.querySelector('#closeExportModal').addEventListener('click', () => modal.remove());
-  modal.querySelector('#exportJsonBtn').addEventListener('click', () => {
-    exportToJSON();
-    modal.remove();
-  });
-  modal.querySelector('#exportCsvBtn').addEventListener('click', () => {
-    exportToCSV();
-    modal.remove();
-  });
-  modal.querySelector('#exportMarkdownBtn').addEventListener('click', () => {
-    exportToMarkdown();
-    modal.remove();
-  });
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
 }
 
 /**
@@ -1436,167 +1391,6 @@ async function exportToJSON() {
   } catch (error) {
     console.error('[ChatMarker Popup] Error exporting JSON:', error);
     showToast('❌ Error exporting data');
-  }
-}
-
-/**
- * Export data as CSV
- */
-async function exportToCSV() {
-  try {
-    const chatMarkers = await getChatMarkersArray();
-
-    // Check if there's data to export
-    if (chatMarkers.length === 0) {
-      showToast('⚠️ No chats to export');
-      return;
-    }
-
-    // CSV headers
-    const headers = ['Date', 'Platform', 'Chat Name', 'Labels', 'Notes', 'Reminder', 'Chat ID'];
-
-    // CSV rows
-    const rows = chatMarkers.map(marker => {
-      const date = new Date(marker.createdAt || marker.timestamp).toLocaleString();
-      const platform = capitalizeFirst(marker.platform || 'unknown');
-      const chatName = (marker.chatName || 'Unknown').replace(/"/g, '""'); // Escape quotes
-      const labels = (marker.labels || []).join(', ');
-      const notes = (marker.notes || '').replace(/"/g, '""').replace(/\n/g, ' '); // Escape quotes and remove newlines
-
-      // Get reminder info
-      let reminderText = '';
-      const reminder = Object.values(allReminders).find(r => r.messageId === marker.chatMarkerId && r.active && !r.firedAt);
-      if (reminder) {
-        reminderText = new Date(reminder.reminderTime).toLocaleString();
-      }
-
-      const chatId = marker.chatId || '';
-
-      return [date, platform, `"${chatName}"`, labels, `"${notes}"`, reminderText, chatId];
-    });
-
-    // Combine headers and rows
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-
-    // Add BOM for UTF-8 encoding (helps Excel open files correctly)
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chatmarker-export-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    showToast(`✅ Exported ${chatMarkers.length} chats as CSV`);
-  } catch (error) {
-    console.error('[ChatMarker Popup] Error exporting CSV:', error);
-    showToast('❌ Error exporting CSV');
-  }
-}
-
-/**
- * Export data as Markdown
- */
-async function exportToMarkdown() {
-  try {
-    const chatMarkers = await getChatMarkersArray();
-
-    // Check if there's data to export
-    if (chatMarkers.length === 0) {
-      showToast('⚠️ No chats to export');
-      return;
-    }
-
-    // Group by platform and label
-    const grouped = {};
-    const unlabeled = [];
-
-    chatMarkers.forEach(marker => {
-      if (marker.labels && marker.labels.length > 0) {
-        marker.labels.forEach(label => {
-          if (!grouped[label]) grouped[label] = [];
-          grouped[label].push(marker);
-        });
-      } else {
-        unlabeled.push(marker);
-      }
-    });
-
-    // Build markdown
-    let markdown = `# ChatMarker Export\n\n`;
-    markdown += `**Exported:** ${new Date().toLocaleString()}  \n`;
-    markdown += `**Total Chats:** ${chatMarkers.length}  \n`;
-    markdown += `**Active Reminders:** ${Object.values(allReminders).filter(r => r.active && !r.firedAt).length}\n\n`;
-    markdown += `---\n\n`;
-
-    // Export by label
-    const labelOrder = ['urgent', 'important', 'followup', 'question', 'completed'];
-    const labelEmoji = {
-      urgent: '🔴',
-      important: '🟡',
-      followup: '🔵',
-      question: '🟣',
-      completed: '🟢'
-    };
-
-    labelOrder.forEach(label => {
-      if (grouped[label] && grouped[label].length > 0) {
-        markdown += `## ${labelEmoji[label]} ${capitalizeFirst(label)} (${grouped[label].length})\n\n`;
-
-        grouped[label].forEach(marker => {
-          markdown += `### ${marker.chatName || 'Unknown Chat'}\n\n`;
-          markdown += `- **Platform:** ${capitalizeFirst(marker.platform)}  \n`;
-          markdown += `- **Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
-          markdown += `- **Chat ID:** \`${marker.chatId || 'N/A'}\`  \n`;
-
-          if (marker.notes && marker.notes.trim()) {
-            markdown += `\n**Note:**\n> ${marker.notes}\n`;
-          }
-
-          const reminder = Object.values(allReminders).find(r => r.messageId === marker.chatMarkerId && r.active && !r.firedAt);
-          if (reminder) {
-            markdown += `\n⏰ **Reminder:** ${new Date(reminder.reminderTime).toLocaleString()}\n`;
-          }
-
-          markdown += `\n---\n\n`;
-        });
-      }
-    });
-
-    // Unlabeled
-    if (unlabeled.length > 0) {
-      markdown += `## 📌 Unlabeled (${unlabeled.length})\n\n`;
-
-      unlabeled.forEach(marker => {
-        markdown += `### ${marker.chatName || 'Unknown Chat'}\n\n`;
-        markdown += `- **Platform:** ${capitalizeFirst(marker.platform)}  \n`;
-        markdown += `- **Date:** ${new Date(marker.createdAt || marker.timestamp).toLocaleString()}  \n`;
-
-        if (marker.notes && marker.notes.trim()) {
-          markdown += `\n**Note:**\n> ${marker.notes}\n`;
-        }
-
-        markdown += `\n---\n\n`;
-      });
-    }
-
-    // Create download
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chatmarker-export-${new Date().toISOString().split('T')[0]}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    showToast(`✅ Exported ${chatMarkers.length} chats as Markdown`);
-  } catch (error) {
-    console.error('[ChatMarker Popup] Error exporting Markdown:', error);
-    showToast('❌ Error exporting Markdown');
   }
 }
 
@@ -1833,23 +1627,6 @@ async function clearAllData() {
 }
 
 /**
- * Toggle theme
- */
-function toggleTheme() {
-  const isDark = document.body.classList.contains('dark-mode');
-
-  if (isDark) {
-    document.body.classList.remove('dark-mode');
-    themeIcon.textContent = '🌙';
-    localStorage.setItem('chatmarker-theme', 'light');
-  } else {
-    document.body.classList.add('dark-mode');
-    themeIcon.textContent = '☀️';
-    localStorage.setItem('chatmarker-theme', 'dark');
-  }
-}
-
-/**
  * Apply theme based on settings
  */
 function applyTheme() {
@@ -1867,10 +1644,8 @@ function applyTheme() {
 
   if (isDark) {
     document.body.classList.add('dark-mode');
-    themeIcon.textContent = '☀️';
   } else {
     document.body.classList.remove('dark-mode');
-    themeIcon.textContent = '🌙';
   }
 }
 
