@@ -94,7 +94,7 @@ body {
   color: var(--color-text-primary);
   background-color: var(--color-background);
   width: 100%;
-  min-width: 280px;
+  min-width: 240px;
   height: 100vh;
   overflow: hidden;
   display: flex;
@@ -110,14 +110,14 @@ body {
 
 /* Sidebar */
 .dashboard-sidebar {
-  width: 160px;
+  width: 120px;
   background-color: var(--color-surface);
   border-right: 1px solid var(--color-border);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: var(--space-sm);
-  gap: var(--space-md);
+  padding: var(--space-xs);
+  gap: var(--space-sm);
 }
 
 .dashboard-sidebar::-webkit-scrollbar {
@@ -152,7 +152,7 @@ body {
 }
 
 .stat-number {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-primary);
 }
@@ -171,7 +171,7 @@ body {
 }
 
 .sidebar-heading {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: var(--space-xs);
@@ -335,18 +335,18 @@ body {
 .platform-tabs {
   display: flex;
   gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-sm);
+  padding: var(--space-xs) var(--space-xs);
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
 }
 
 .platform-tab {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
   border: none;
   background-color: transparent;
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 500;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -384,10 +384,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-sm);
+  padding: var(--space-xs);
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-background);
-  height: 48px;
+  height: 40px;
 }
 
 .header-left {
@@ -402,8 +402,8 @@ body {
 }
 
 .logo-icon-box {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -413,11 +413,11 @@ body {
 }
 
 .logo-icon {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .logo-text {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -428,8 +428,8 @@ body {
 }
 
 .icon-button {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
@@ -437,7 +437,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   transition: background-color var(--transition-fast);
 }
 
@@ -458,8 +458,8 @@ body {
 
 /* Search Container */
 .search-container {
-  padding: var(--space-sm);
-  padding-bottom: var(--space-sm);
+  padding: var(--space-xs);
+  padding-bottom: var(--space-xs);
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
 }
@@ -479,11 +479,11 @@ body {
 
 .search-input {
   width: 100%;
-  height: 40px;
-  padding: 10px 36px 10px 36px;
+  height: 32px;
+  padding: 6px 28px 6px 28px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   background-color: var(--color-background);
   transition: border-color var(--transition-fast);
@@ -653,15 +653,15 @@ body {
 
 /* Message List */
 .message-list {
-  padding: var(--space-md);
+  padding: var(--space-sm);
 }
 
 /* Message Card */
 .message-card {
-  padding: var(--space-base);
+  padding: var(--space-sm);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
   background-color: var(--color-background);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -722,8 +722,8 @@ body {
 /* Profile Avatar */
 .profile-avatar {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
   border-radius: 50%;
@@ -733,7 +733,7 @@ body {
 }
 
 .avatar-initials {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: white;
   text-transform: uppercase;
