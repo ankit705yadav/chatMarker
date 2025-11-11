@@ -94,7 +94,7 @@ body {
   color: var(--color-text-primary);
   background-color: var(--color-background);
   width: 100%;
-  min-width: 320px;
+  min-width: 280px;
   height: 100vh;
   overflow: hidden;
   display: flex;
@@ -110,14 +110,14 @@ body {
 
 /* Sidebar */
 .dashboard-sidebar {
-  width: 200px;
+  width: 160px;
   background-color: var(--color-surface);
   border-right: 1px solid var(--color-border);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: var(--space-base);
-  gap: var(--space-lg);
+  padding: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .dashboard-sidebar::-webkit-scrollbar {
@@ -137,8 +137,8 @@ body {
 .sidebar-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-  padding: var(--space-md);
+  gap: var(--space-xs);
+  padding: var(--space-xs);
   background-color: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -152,7 +152,7 @@ body {
 }
 
 .stat-number {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   font-weight: 700;
   color: var(--color-primary);
 }
@@ -335,14 +335,14 @@ body {
 .platform-tabs {
   display: flex;
   gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-base);
+  padding: var(--space-sm) var(--space-sm);
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
 }
 
 .platform-tab {
-  padding: var(--space-sm) var(--space-base);
+  padding: var(--space-sm) var(--space-md);
   border: none;
   background-color: transparent;
   color: var(--color-text-secondary);
@@ -384,10 +384,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-base);
+  padding: var(--space-sm);
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-background);
-  height: 60px;
+  height: 48px;
 }
 
 .header-left {
@@ -402,8 +402,8 @@ body {
 }
 
 .logo-icon-box {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -413,11 +413,11 @@ body {
 }
 
 .logo-icon {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .logo-text {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -458,8 +458,8 @@ body {
 
 /* Search Container */
 .search-container {
-  padding: var(--space-base);
-  padding-bottom: var(--space-md);
+  padding: var(--space-sm);
+  padding-bottom: var(--space-sm);
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
 }
