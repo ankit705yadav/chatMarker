@@ -216,10 +216,17 @@ async function syncFromCloud() {
 
 // Update sync status UI
 function updateSyncStatus(message) {
-  const syncStatus = document.getElementById('syncStatus');
-  if (syncStatus) {
-    syncStatus.textContent = message;
-    syncStatus.style.display = message ? 'inline-block' : 'none';
+  // Only update UI if running in a document context (popup), not in service worker (background)
+  if (typeof document !== 'undefined') {
+    const syncStatus = document.getElementById('syncStatus');
+    if (syncStatus) {
+      syncStatus.textContent = message;
+      syncStatus.style.display = message ? 'inline-block' : 'none';
+    }
+  }
+  // Always log the status for debugging
+  if (message) {
+    console.log('[ChatMarker Sync] Status:', message);
   }
 }
 
