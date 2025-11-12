@@ -1,13 +1,13 @@
-# Firebase Setup Guide for IdeaDumpster/ChatMarker
+# Firebase Setup Guide for ChatMarker
 
-This guide will help you set up Firebase for the extension. Firebase allows you to sync your data across different devices.
+This guide will help you set up Firebase for ChatMarker. Firebase allows you to sync your marked chats across different devices.
 
 ---
 
 ## What is Firebase?
 
-Firebase is a free service from Google that stores your data in the cloud. This extension uses it to:
-- Save your data online
+Firebase is a free service from Google that stores your data in the cloud. ChatMarker uses it to:
+- Save your marked chats online
 - Sync data between your devices (laptop, desktop, etc.)
 - Keep your data private and secure
 
@@ -15,10 +15,10 @@ Firebase is a free service from Google that stores your data in the cloud. This 
 
 ## Do I Need This?
 
-**Your extension already works!** But Firebase gives you:
-- ✅ Secure sign-in to protect your data
+**ChatMarker already works without Firebase!** But Firebase gives you:
+- ✅ Secure sign-in to protect your marked chats
 - ✅ Automatic sync across multiple computers
-- ✅ Cloud backup - never lose your data
+- ✅ Cloud backup - never lose your marked chats and reminders
 
 ---
 
@@ -39,7 +39,7 @@ Follow these steps to enable Firebase. It takes about 10 minutes.
 ### Step 2: Create a New Project
 
 1. Click **"Create a project"** (or **"Add project"**)
-2. Enter project name: `IdeaDumpster` or `ChatMarker` (any name you like)
+2. Enter project name: `ChatMarker` (or any name you like)
 3. Click **"Continue"**
 4. **Disable Google Analytics** (not needed) or leave it enabled
 5. Click **"Create project"**
@@ -54,7 +54,7 @@ Follow these steps to enable Firebase. It takes about 10 minutes.
 2. Click **"Project settings"**
 3. Scroll down to **"Your apps"** section
 4. Click the **Web icon** `</>`
-5. Enter app nickname: `IdeaDumpster Extension` or `ChatMarker Extension`
+5. Enter app nickname: `ChatMarker Extension`
 6. Click **"Register app"**
 7. **Copy the configuration code** shown on screen
 
@@ -70,7 +70,7 @@ const firebaseConfig = {
 };
 ```
 
-8. Open the file `firebase-config.js` in the extension folder
+8. Open the file `firebase-config.js` in the ChatMarker extension folder
 9. **Replace** the existing `firebaseConfig` with your copied configuration
 10. **Save** the file
 
@@ -107,7 +107,7 @@ const firebaseConfig = {
 
 ### Step 6: Set Up Security Rules (IMPORTANT!)
 
-Security rules control who can access your data. **You must do this step** or the extension won't work.
+Security rules control who can access your data. **You must do this step** or ChatMarker won't work.
 
 1. In Firestore Database page, click the **"Rules"** tab at the top
 2. **Delete all existing text** in the editor
@@ -131,19 +131,19 @@ service cloud.firestore {
 
 **What these rules do:**
 - Only signed-in users can access data
-- Each user can only see their own data
+- Each user can only see their own marked chats and reminders
 - Your data is completely private
 
 ---
 
-### Step 7: Test the Extension
+### Step 7: Test ChatMarker
 
-1. **Reload the extension:**
+1. **Reload the ChatMarker extension:**
    - Go to `chrome://extensions/`
-   - Find IdeaDumpster/ChatMarker
+   - Find ChatMarker
    - Click the reload icon 🔄
 
-2. **Open the extension** (click the icon in Chrome toolbar)
+2. **Open ChatMarker** (click the ChatMarker icon in Chrome toolbar)
 
 3. **Create an account:**
    - Enter your email
@@ -151,12 +151,13 @@ service cloud.firestore {
    - Click "Sign Up"
 
 4. **Test it works:**
-   - **For IdeaDumpster:** Add a new idea
-   - **For ChatMarker:** Go to WhatsApp/Reddit and mark a chat
-   - Check that your data appears in the extension
+   - Go to WhatsApp Web or Reddit
+   - Right-click on a chat and select "Mark This Chat"
+   - Open the ChatMarker side panel - you should see your marked chat
 
 5. **Test cloud sync:**
-   - Click the sync button in settings
+   - Open Settings in the side panel
+   - Click the "Sync to Cloud" button
    - You should see "✅ Synced" message
 
 ✅ If everything works, you're all set!
@@ -167,39 +168,39 @@ service cloud.firestore {
 
 ### Automatic - No Buttons to Press!
 
-**When you open the extension:**
-- Your data automatically downloads from the cloud
+**When you open ChatMarker:**
+- Your marked chats automatically download from the cloud
 - You always see your latest data
 
-**When you add/edit data:**
+**When you mark chats or set reminders:**
 - Changes save to your computer instantly
 - After 3 seconds, changes automatically upload to the cloud
-- Look for the "✅ Synced" message
+- Look for the "✅ Synced" message in the toolbar
 
 **Using multiple computers:**
-1. Make changes on Computer A
+1. Mark chats on Computer A
 2. Wait 4 seconds (for auto-sync)
-3. Open extension on Computer B
-4. Your changes appear automatically!
+3. Open ChatMarker on Computer B
+4. Your marked chats appear automatically!
 
 ---
 
 ## Using Multiple Devices
 
-Want to access your data from another computer?
+Want to access your marked chats from another computer?
 
-1. Install the extension on the other computer
-2. Click the extension icon
+1. Install ChatMarker extension on the other computer
+2. Click the ChatMarker icon
 3. Click **"Sign In"** tab
 4. Enter the same email and password
-5. Your data will automatically download from the cloud!
+5. Your marked chats and reminders will automatically download from the cloud!
 
 ---
 
 ## Cost - It's FREE!
 
 Firebase free plan includes:
-- ✅ 1 GB of cloud storage (enough for thousands of entries)
+- ✅ 1 GB of cloud storage (enough for thousands of marked chats)
 - ✅ 50,000 reads per day
 - ✅ 20,000 writes per day
 
@@ -211,7 +212,7 @@ For personal use, you'll never hit these limits.
 
 ### Your Data is Private
 
-- ✅ Only YOU can see your data
+- ✅ Only YOU can see your marked chats
 - ✅ Stored securely in Google's cloud servers
 - ✅ Not shared with anyone
 - ✅ Not used for advertising
@@ -219,7 +220,8 @@ For personal use, you'll never hit these limits.
 
 ### What's Stored
 
-- Your data (ideas, marked chats, notes, etc.)
+- Your marked chats (chat names, labels, notes)
+- Your reminders (time, chat info)
 - Your email address
 - Sync timestamps
 
@@ -227,6 +229,7 @@ For personal use, you'll never hit these limits.
 
 - Your password (Firebase encrypts it)
 - Your browsing history
+- Your actual chat messages
 - Any personal information
 
 ---
@@ -241,7 +244,7 @@ For personal use, you'll never hit these limits.
 1. Go to Firebase Console → Firestore Database → Rules
 2. Make sure the rules from Step 6 are there
 3. Click "Publish" again
-4. Reload the extension
+4. Reload the ChatMarker extension
 
 ---
 
@@ -265,7 +268,7 @@ For personal use, you'll never hit these limits.
 
 ---
 
-### Extension Not Connecting to Firebase
+### ChatMarker Not Connecting to Firebase
 
 **Problem:** Configuration not copied correctly
 
@@ -274,7 +277,7 @@ For personal use, you'll never hit these limits.
 2. Scroll down to "Your apps"
 3. Find your web app configuration
 4. Copy the config again
-5. Open `firebase-config.js` in the extension folder
+5. Open `firebase-config.js` in the ChatMarker extension folder
 6. Make sure the configuration matches exactly
 7. Save and reload extension
 
@@ -291,15 +294,15 @@ For personal use, you'll never hit these limits.
 
 ---
 
-### Data Not Syncing Between Computers
+### Marked Chats Not Syncing Between Computers
 
 **Problem:** Auto-sync didn't complete
 
 **Solution:**
-1. Make changes on Computer A
+1. Mark chats on Computer A
 2. Wait 5 seconds (watch for "✅ Synced" message)
-3. On Computer B, close and reopen the extension
-4. Your data should appear
+3. On Computer B, close and reopen ChatMarker
+4. Your marked chats should appear
 
 ---
 
@@ -319,7 +322,7 @@ If you're still having issues:
 1. **Check the troubleshooting section** above
 2. **Check Firebase Console:** Make sure all steps are completed
 3. **Check Browser Console:**
-   - Right-click on extension → Inspect
+   - Right-click on ChatMarker side panel → Inspect
    - Look for red error messages in Console tab
 4. **Try signing out and back in**
 5. **Reload the extension** from `chrome://extensions/`
@@ -328,7 +331,7 @@ If you're still having issues:
 
 ## Summary Checklist
 
-Before using the extension with cloud sync:
+Before using ChatMarker with cloud sync:
 
 - [ ] Created Firebase account
 - [ ] Created Firebase project
@@ -336,12 +339,12 @@ Before using the extension with cloud sync:
 - [ ] Enabled Email/Password authentication
 - [ ] Created Firestore Database
 - [ ] Published security rules
-- [ ] Reloaded extension
-- [ ] Created account in extension
-- [ ] Tested adding data
+- [ ] Reloaded ChatMarker extension
+- [ ] Created account in ChatMarker
+- [ ] Marked a test chat
 - [ ] Saw "✅ Synced" message
 
-**All checked?** You're ready to use the extension with cloud sync! 🚀
+**All checked?** You're ready to use ChatMarker with cloud sync! 🚀
 
 ---
 
