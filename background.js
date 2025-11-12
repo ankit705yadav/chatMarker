@@ -3,8 +3,54 @@
  * Handles reminders, notifications, and message passing
  */
 
+// Import Firebase SDK
+importScripts('lib/firebase-app-compat.js');
+importScripts('lib/firebase-auth-compat.js');
+importScripts('lib/firebase-firestore-compat.js');
+
+// Import Firebase configuration
+importScripts('firebase-config.js');
+
 // Import storage functions (using importScripts for service worker)
 importScripts('utils/storage.js');
+
+// Import cloud sync functions
+importScripts('firestore-sync.js');
+
+// Initialize Firebase and auth for background service worker
+let auth = null;
+let db = null;
+let currentUser = null;
+
+(async function initializeFirebaseBackground() {
+  try {
+    console.log('[ChatMarker Background] Initializing Firebase...');
+
+    // Initialize Firebase app
+    const app = firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+
+    // Get current user from storage
+    const { currentUser: storedUser } = await chrome.storage.local.get(['currentUser']);
+    if (storedUser) {
+      currentUser = storedUser;
+      console.log('[ChatMarker Background] Current user loaded:', currentUser.email);
+    }
+
+    // Listen for auth state changes in storage
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.currentUser) {
+        currentUser = changes.currentUser.newValue;
+        console.log('[ChatMarker Background] User state changed:', currentUser ? currentUser.email : 'signed out');
+      }
+    });
+
+    console.log('[ChatMarker Background] Firebase initialized');
+  } catch (error) {
+    console.error('[ChatMarker Background] Firebase init error:', error);
+  }
+})();
 
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener(async (details) => {

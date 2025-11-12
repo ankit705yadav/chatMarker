@@ -791,6 +791,12 @@ async function importData(data) {
     }
 
     console.log('[ChatMarker] Data imported successfully');
+
+    // Trigger auto-sync to cloud after import
+    if (typeof triggerAutoSync === 'function') {
+      triggerAutoSync();
+    }
+
     return true;
   } catch (error) {
     console.error('[ChatMarker] Error importing data:', error);
