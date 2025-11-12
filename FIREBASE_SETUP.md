@@ -1,24 +1,48 @@
 # Firebase Setup Guide for ChatMarker
 
-## Error: "Missing or insufficient permissions"
+## Quick Setup Summary
 
-This error occurs because Firestore security rules need to be configured to allow authenticated users to access their data.
+ChatMarker uses **Firebase Authentication** and **Firestore Database** for cloud sync of chat markers and reminders.
 
-## Quick Fix - Update Firestore Security Rules
+## Current Project Configuration
 
-### Option 1: Using Firebase Console (Recommended)
+**Firebase Project Details:**
+- **Project ID:** `chatmarker-40dd8`
+- **Auth Domain:** `chatmarker-40dd8.firebaseapp.com`
+- **Database:** Cloud Firestore
+- **Authentication:** Email/Password
 
-1. **Go to Firebase Console**
-   - Visit: https://console.firebase.google.com/
-   - Select your project: `chatmarker-40dd8`
+**Configuration File:** `firebase-config.js`
 
-2. **Navigate to Firestore Rules**
-   - Click on "Firestore Database" in the left sidebar
-   - Click on the "Rules" tab at the top
+---
 
-3. **Replace the existing rules with:**
+## Required Firebase Services
 
-```
+### 1. Firebase Authentication
+
+**Sign-in Methods Enabled:**
+- ✅ Email/Password authentication
+
+**How it works:**
+- Users sign up with email and password in the side panel
+- Authentication state is persisted across extension sessions
+- User UID is used to isolate their data in Firestore
+
+**Implementation:** `popup/auth.js`
+- `signUpWithEmail(email, password)` - Create new account
+- `signInWithEmail(email, password)` - Sign in existing user
+- `signOut()` - Sign out current user
+- `auth.onAuthStateChanged()` - Listen for auth state changes
+
+---
+
+### 2. Cloud Firestore Database
+
+**Firestore Security Rules Required:**
+
+The following rules **MUST** be deployed to allow authenticated users to access their data:
+
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -30,100 +54,261 @@ service cloud.firestore {
 }
 ```
 
-4. **Publish the rules**
-   - Click the "Publish" button
-   - Wait for confirmation (usually takes a few seconds)
+**Deploy Rules:**
 
-5. **Test the extension**
-   - Reload the ChatMarker extension
-   - Sign in again
-   - The sync should now work!
+**Option 1: Firebase Console**
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select project: `chatmarker-40dd8`
+3. Navigate to **Firestore Database** → **Rules** tab
+4. Copy the rules above and click **Publish**
 
----
-
-### Option 2: Using Firebase CLI
-
-If you have Firebase CLI installed:
-
+**Option 2: Firebase CLI**
 ```bash
 cd /home/ankit705yadav/Desktop/ritz/chatMarker
 firebase deploy --only firestore:rules
 ```
 
+The rules file is already in the project: `firestore.rules`
+
 ---
-
-## What These Rules Do
-
-- **`request.auth != null`** - Ensures the user is authenticated
-- **`request.auth.uid == userId`** - Ensures users can only access their own data
-- **`{document=**}`** - Applies to all documents in subcollections (chatMarkers and reminders)
 
 ## Data Structure
 
-Your Firestore database will have this structure:
+Firestore stores data in a hierarchical structure:
 
 ```
 /users
-  /{userId}
+  /{userId}  ← Firebase Auth UID
     /chatMarkers
       /{chatMarkerId}
-        - chatMarkerId: "chat_whatsapp_123..."
-        - platform: "whatsapp"
-        - chatName: "John Doe"
-        - labels: ["urgent", "important"]
-        - notes: "Follow up tomorrow"
-        - createdAt: 1234567890
-        - syncedAt: (server timestamp)
+        chatMarkerId: "chat_whatsapp_1234567890"
+        platform: "whatsapp" | "messenger" | "instagram" | "linkedin" | "reddit"
+        chatId: "unique_chat_identifier"
+        chatName: "John Doe"
+        labels: ["urgent", "important"]
+        notes: "Follow up tomorrow"
+        createdAt: 1234567890 (timestamp)
+        updatedAt: 1234567890 (timestamp)
+        syncedAt: (server timestamp)
+
     /reminders
       /{reminderId}
-        - reminderId: "reminder_123..."
-        - messageId: "chat_whatsapp_123..."
-        - reminderTime: 1234567890
-        - active: true
-        - syncedAt: (server timestamp)
+        reminderId: "reminder_1234567890_abc123"
+        messageId: "chat_whatsapp_1234567890"
+        reminderTime: 1234567890 (timestamp)
+        chatName: "John Doe"
+        platform: "whatsapp"
+        chatId: "unique_chat_identifier"
+        active: true
+        createdAt: 1234567890 (timestamp)
+        syncedAt: (server timestamp)
 ```
 
-## Verification
+**Key Points:**
+- Each user's data is isolated by their Firebase Auth UID
+- Chat markers track marked conversations with labels and notes
+- Reminders are linked to chat markers via `messageId`
+- Timestamps are stored as Unix milliseconds
+- `syncedAt` is a server-generated timestamp
 
-After updating the rules, you should see these logs without errors:
+---
 
+## Cloud Sync Implementation
+
+**File:** `firestore-sync.js`
+
+### Sync Strategy
+
+**Full Replace (Not Merge):**
+- Cloud is always the **source of truth**
+- `syncToCloud()` - Replaces ALL cloud data with local data
+- `syncFromCloud()` - Replaces ALL local data with cloud data
+- No conflict resolution - last sync wins
+
+### Automatic Sync Behavior
+
+1. **On Sign In:**
+   - Automatically downloads cloud data once per session
+   - Replaces local storage with cloud data
+   - Subsequent reloads don't auto-download again
+
+2. **On Data Changes:**
+   - Auto-uploads to cloud 3 seconds after changes (debounced)
+   - Triggered when:
+     - Chat marker saved/updated/deleted
+     - Reminder created/deleted
+     - Bulk operations (clear all, import data)
+
+3. **Manual Sync:**
+   - "Sync to Cloud" button - Uploads local → cloud
+   - "Sync from Cloud" button - Downloads cloud → local
+
+### Sync Functions
+
+```javascript
+// Upload all local data to cloud (replaces cloud data)
+await syncToCloud();
+
+// Download all cloud data to local (replaces local data)
+await syncFromCloud();
+
+// Trigger auto-upload after changes (3 second debounce)
+triggerAutoSync();
 ```
-[ChatMarker Sync] ⬇️ Downloading from cloud...
-[ChatMarker Sync] Downloaded X chat markers and Y reminders from cloud
+
+**Storage Integration:**
+- Uses `chrome.storage.local` for local persistence
+- Uses `chrome.storage.session` to track initial sync per session
+- Sync is triggered via `triggerAutoSync()` called from storage functions
+
+---
+
+## Common Issues & Solutions
+
+### Error: "Missing or insufficient permissions"
+
+**Cause:** Firestore security rules not deployed
+
+**Fix:** Deploy the security rules (see section above)
+
+**Verify:**
+```
+[ChatMarker Sync] ⬇️ Downloaded X chat markers and Y reminders from cloud
 [ChatMarker Sync] ✅ Synced data from cloud to local
 ```
 
-## Security
+---
 
-These rules ensure:
+### Error: "Firestore not initialized or user not signed in"
+
+**Cause:** Trying to sync before authentication completes
+
+**Fix:** Ensure user is signed in before syncing:
+```javascript
+if (currentUser) {
+  await syncToCloud();
+}
+```
+
+**Check Auth State:**
+Look for this log:
+```
+[ChatMarker Auth] User signed in: your@email.com UID: xxx
+```
+
+---
+
+### Cloud Sync Not Working
+
+**Checklist:**
+1. ✅ Firebase Authentication enabled (Email/Password)
+2. ✅ Firestore Database created (not Realtime Database)
+3. ✅ Security rules deployed
+4. ✅ User signed in (check console for auth logs)
+5. ✅ Network connection active
+
+**Debug Logs:**
+Open browser console and look for:
+```
+[ChatMarker Sync] ⬆️ Uploading X chat markers and Y reminders to cloud...
+[ChatMarker Sync] ✅ Sync to cloud complete
+```
+
+---
+
+### Data Loss Warning
+
+⚠️ **Important:** Because sync uses a "full replace" strategy:
+
+- If you sign in on Device A with data
+- Then sign in on Device B (empty)
+- Device B downloads empty cloud data and clears local storage
+- Then you make changes on Device B and sync
+- Device B uploads its data (even if empty), replacing Device A's cloud data
+
+**Best Practice:**
+- Always "Sync from Cloud" before making changes on a new device
+- Use "Export Data" to create backups before testing
+
+---
+
+## Security Features
+
+**Firestore Rules Ensure:**
 - ✅ Only authenticated users can access data
-- ✅ Users can only access their own data (isolated by UID)
+- ✅ Users can ONLY access their own data (isolated by UID)
 - ✅ Anonymous users cannot read or write anything
 - ✅ Users cannot access other users' data
 
-## Troubleshooting
+**API Key Security:**
+- Firebase Web API keys are safe to commit (they identify your project, not authenticate users)
+- Actual security is enforced by Firestore rules, not the API key
+- Users must authenticate to access data
 
-If you still see permission errors:
+---
 
-1. **Check Authentication is enabled:**
-   - Firebase Console → Authentication → Sign-in method
-   - Ensure "Email/Password" is enabled
+## Testing Setup
 
-2. **Verify user is signed in:**
-   - Open browser console
-   - Look for: `[ChatMarker Auth] User signed in: your@email.com UID: xxx`
+**Verify Firebase Integration:**
 
-3. **Check Firestore is created:**
-   - Firebase Console → Firestore Database
-   - Should show "Cloud Firestore" (not "Realtime Database")
+1. **Sign Up/In:**
+   - Open extension side panel
+   - Create account or sign in
+   - Check console for: `[ChatMarker Auth] User signed in: email@example.com`
 
-4. **Wait a few minutes:**
-   - Sometimes rule updates take a moment to propagate
+2. **Test Sync:**
+   - Mark a chat on WhatsApp/Reddit
+   - Open side panel
+   - Should auto-upload after 3 seconds
+   - Check console: `[ChatMarker Sync] ⬆️ Uploading...`
 
-## Current Configuration
+3. **Test Cloud Download:**
+   - Clear extension data (chrome://extensions → Remove)
+   - Reinstall extension
+   - Sign in with same account
+   - Should auto-download marked chats
+   - Check console: `[ChatMarker Sync] ⬇️ Downloaded X chat markers...`
 
-Your Firebase project:
-- **Project ID:** chatmarker-40dd8
-- **Auth Domain:** chatmarker-40dd8.firebaseapp.com
-- **User UID:** AzZDuNzrO6VcY8RSL8t86jLRnsm2
-- **Email:** ankit886yadav@gmail.com
+**Console Commands for Testing:**
+```javascript
+// Manual upload
+await syncToCloud();
+
+// Manual download
+await syncFromCloud();
+
+// Check current user
+console.log(currentUser);
+
+// Export data for backup
+const backup = await exportData();
+console.log(backup);
+```
+
+---
+
+## File Structure
+
+```
+chatMarker/
+├── firebase-config.js          # Firebase project configuration
+├── firestore.rules             # Firestore security rules
+├── firestore-sync.js           # Cloud sync logic
+├── popup/
+│   └── auth.js                 # Authentication functions
+├── utils/
+│   └── storage.js              # Local storage + triggers sync
+└── lib/
+    ├── firebase-app-compat.js     # Firebase SDK
+    ├── firebase-auth-compat.js    # Auth SDK
+    └── firebase-firestore-compat.js # Firestore SDK
+```
+
+---
+
+## Support
+
+For Firebase-specific issues:
+- [Firebase Console](https://console.firebase.google.com/)
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [Firestore Security Rules Guide](https://firebase.google.com/docs/firestore/security/get-started)
