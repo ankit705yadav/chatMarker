@@ -237,9 +237,14 @@ Required to add "Mark This Chat" option to the right-click context menu on suppo
 Required to detect and mark chats on WhatsApp Web platform.
 ```
 
-**https://www.messenger.com/*, https://www.facebook.com/***
+**https://www.messenger.com/***
 ```
 Required to detect and mark chats on Facebook Messenger platform.
+```
+
+**https://www.facebook.com/***
+```
+Required to detect and mark chats on Facebook platform (Messenger is accessible via Facebook).
 ```
 
 **https://www.instagram.com/***
@@ -252,14 +257,29 @@ Required to detect and mark Instagram Direct messages.
 Required to detect and mark LinkedIn messages.
 ```
 
-**https://www.reddit.com/*, https://old.reddit.com/*, https://chat.reddit.com/***
+**https://www.reddit.com/***
 ```
-Required to detect and mark Reddit chats and messages.
+Required to detect and mark Reddit chats and messages on main Reddit site.
 ```
 
-**https://*.firebaseapp.com/*, https://*.googleapis.com/***
+**https://old.reddit.com/***
 ```
-Required for Firebase authentication and Firestore cloud sync functionality to work properly.
+Required to detect and mark Reddit messages on old Reddit interface.
+```
+
+**https://chat.reddit.com/***
+```
+Required to detect and mark messages on Reddit's dedicated chat interface.
+```
+
+**https://*.firebaseapp.com/***
+```
+Required for Firebase authentication pages and OAuth redirects to function properly.
+```
+
+**https://*.googleapis.com/***
+```
+Required for Firebase Firestore database API calls and cloud sync functionality.
 ```
 
 ### Remote Code
