@@ -2,6 +2,14 @@
 
 This guide helps you fill out the **Privacy practices** tab in Chrome Web Store Developer Dashboard.
 
+## 📋 Quick Summary
+
+**Version:** 1.0.1
+**Permissions:** 6 regular + 10 host permissions
+**Data Collected:** Email, Website content, Personal communications
+**Remote Code:** No
+**Status:** ✅ Form filled and ready for submission
+
 ---
 
 ## Section 1: Data Usage
@@ -20,11 +28,11 @@ Select the following types:
 #### ✅ Personally Identifiable Information
 - [x] **Email address**
 
-#### ✅ User Activity
-- [x] **Website content** (chat names from marked conversations)
+#### ✅ Website Content
+- [x] **Text, images, sounds, videos, or hyperlinks** (chat names from marked conversations)
 
 #### ✅ Personal Communications
-- [x] **Text messages** (only the names/titles of chats, NOT actual message content)
+- [x] **Emails, texts, or chat messages** (only the names/titles of chats, NOT actual message content)
 
 ---
 
@@ -74,17 +82,17 @@ For **each type of data** selected above, specify the use:
 
 ## Section 4: Data Handling Certification
 
-### Certify the following:
+### I certify that the following disclosures are true:
 
-✅ Check ALL of these boxes:
+✅ Check ALL of these boxes (REQUIRED):
 
-- [x] **This item only collects user data that is required for the functionality or services it provides**
+- [x] **I do not sell or transfer user data to third parties, outside of the approved use cases**
 
-- [x] **This item does not sell user data to third parties**
+- [x] **I do not use or transfer user data for purposes that are unrelated to my item's single purpose**
 
-- [x] **This item does not use or transfer user data for purposes unrelated to the item's core functionality**
+- [x] **I do not use or transfer user data to determine creditworthiness or for lending purposes**
 
-- [x] **This item does not use or transfer user data to determine creditworthiness or for lending purposes**
+**Note:** You must certify all three disclosures to comply with Developer Program Policies
 
 ---
 
@@ -275,24 +283,85 @@ Use this template and host it online:
 
 ---
 
-## Section 6: Justification for Sensitive Permissions
+## Section 6: Permission Justifications
 
-If asked to justify specific permissions:
+### Regular Permissions
 
-### Storage Permission
+**storage**
 ```
-Required to save marked chats, labels, notes, reminders, and user preferences locally on the device for offline access and faster performance.
-```
-
-### Host Permissions (for chat platforms)
-```
-Required to detect chat elements on supported platforms (WhatsApp, Reddit, Instagram, LinkedIn, Messenger) and inject context menu options. No data is collected from these sites except chat names that users explicitly choose to mark.
+Required to save marked chats, labels, notes, reminders, and user settings locally on the device.
 ```
 
-### Firebase/Google APIs
+**notifications**
 ```
-Required for user authentication (Firebase Auth) and cloud synchronization (Firestore). All data transmission uses encrypted connections and is limited to user's own marked chats, labels, notes, and reminders.
+Required to send reminder notifications when scheduled reminders trigger.
 ```
+
+**alarms**
+```
+Required to schedule and trigger reminders at user-specified times.
+```
+
+**activeTab**
+```
+Required to interact with the current chat platform tab when marking chats via context menu.
+```
+
+**sidePanel**
+```
+Required to display the extension's main interface as a side panel in Chrome.
+```
+
+**contextMenus**
+```
+Required to add "Mark This Chat" option to the right-click context menu on supported platforms.
+```
+
+---
+
+### Host Permission Justifications
+
+**https://web.whatsapp.com/***
+```
+Required to detect and mark chats on WhatsApp Web platform.
+```
+
+**https://www.messenger.com/*, https://www.facebook.com/***
+```
+Required to detect and mark chats on Facebook Messenger platform.
+```
+
+**https://www.instagram.com/***
+```
+Required to detect and mark Instagram Direct messages.
+```
+
+**https://www.linkedin.com/***
+```
+Required to detect and mark LinkedIn messages.
+```
+
+**https://www.reddit.com/*, https://old.reddit.com/*, https://chat.reddit.com/***
+```
+Required to detect and mark Reddit chats and messages.
+```
+
+**https://*.firebaseapp.com/*, https://*.googleapis.com/***
+```
+Required for Firebase authentication and Firestore cloud sync functionality to work properly.
+```
+
+---
+
+## Section 7: Remote Code
+
+### Are you using remote code?
+
+**Answer:** ❌ **No, I am not using Remote code**
+
+**Justification:** (Leave empty - not applicable)
+
+**Note:** Remote code is any JS or Wasm that is not included in the extension's package. This includes references to external files in `<script>` tags, modules pointing to external files, and strings evaluated through `eval()`. ChatMarker bundles all code locally.
 
 ---
 
@@ -300,16 +369,29 @@ Required for user authentication (Firebase Auth) and cloud synchronization (Fire
 
 Before submitting, verify:
 
-- [ ] Selected all data types collected (Email, Website content, Personal communications)
-- [ ] Specified purpose for each data type (App functionality, Account management)
-- [ ] Confirmed data is NOT used for ads
-- [ ] Confirmed data IS transferred off device (for cloud sync)
-- [ ] Checked all 4 certification boxes
-- [ ] Created and hosted privacy policy online
+**Single Purpose:**
+- [x] Single purpose description written (narrow, easy-to-understand)
+- [x] Character count: 205/1000
+
+**Permissions:**
+- [x] All 6 regular permissions justified
+- [x] All 10 host permissions justified
+- [x] No unnecessary permissions requested
+- [x] Remote code question answered (No)
+
+**Data Usage:**
+- [x] Selected data types: Personally identifiable information, Website content, Personal communications
+- [x] Specified purpose for each data type (App functionality, Account management)
+- [x] Confirmed data is NOT used for ads
+- [x] Confirmed data IS transferred off device (for cloud sync)
+- [x] Checked all 3 certification boxes
+
+**Privacy Policy:**
+- [ ] Created and hosted privacy policy online (GitHub Pages)
 - [ ] Added privacy policy URL to submission form
 - [ ] Privacy policy is publicly accessible (test the link)
 - [ ] Privacy policy includes your contact information
-- [ ] Privacy policy date is current
+- [ ] Privacy policy date is current (November 19-20, 2025)
 
 ---
 
@@ -317,42 +399,159 @@ Before submitting, verify:
 
 ### What Chrome Web Store Reviewers Check:
 
-1. **Privacy policy exists and is accessible**
-   - Must load without errors
-   - Must be in English (or your primary language)
-   - Must be publicly accessible (no login required)
+1. **Single Purpose Compliance**
+   - Description must be narrow and easy-to-understand
+   - All features must support the stated single purpose
+   - No unrelated functionality
 
-2. **Privacy policy matches declared data usage**
-   - Must mention all data types you selected
-   - Must explain how each type is used
-   - Must be specific about Firebase/cloud storage
-
-3. **Certifications are accurate**
-   - Don't sell data ✓
-   - Data used only for core functionality ✓
-   - No advertising use ✓
-
-4. **Permissions are justified**
-   - Each permission must have valid reason
+2. **Permission Justifications**
+   - Each permission must have clear, specific justification
    - Must match actual extension behavior
+   - No "future-proofing" permissions
+   - Host permissions require in-depth review (may delay publishing)
+
+3. **Data Usage Disclosures**
+   - Must select ALL data types collected
+   - Must specify exact purpose for each data type
+   - Must disclose if data is transferred off device
+   - Must confirm data NOT used for ads (if applicable)
+
+4. **Certifications Must Be Accurate**
+   - ✅ Don't sell data to third parties
+   - ✅ Data used only for single purpose
+   - ✅ No creditworthiness/lending use
+   - **All 3 certifications required**
+
+5. **Privacy Policy Requirements**
+   - Must exist and be publicly accessible
+   - Must load without errors (no login required)
+   - Must be in English (or your primary language)
+   - Must mention all data types declared in form
+   - Must explain how each type is used
+   - Must mention Firebase/cloud storage
+   - Must include contact information
+
+6. **Remote Code**
+   - Must be accurate (No = all code bundled)
+   - If Yes, must provide detailed justification
+   - Violating this causes immediate rejection
 
 ---
 
 ## Quick Action Items
 
-1. **Copy the privacy policy HTML template above**
-2. **Replace placeholders:**
-   - `[Your Email Address]`
-   - `[Your GitHub Repository URL]`
-   - `[Your Name/Organization Name]`
-3. **Host it online** (GitHub Pages recommended)
-4. **Get the public URL**
-5. **Test the URL** in incognito mode
-6. **Enter URL in Privacy practices tab**
-7. **Select all data types** as listed above
-8. **Check all certification boxes**
-9. **Save and continue**
+### ✅ Completed:
+1. ✅ Single purpose description written (205 characters)
+2. ✅ All 6 regular permissions justified
+3. ✅ All 10 host permissions justified
+4. ✅ Remote code question answered (No)
+5. ✅ Data types selected (3 types)
+6. ✅ Data usage purposes specified
+7. ✅ All 3 certifications checked
+8. ✅ Privacy policy HTML file created (`privacy-policy.html`)
+
+### 🔄 Remaining Actions:
+
+1. **Host Privacy Policy on GitHub Pages:**
+   - Create/use existing repository
+   - Copy `privacy-policy.html` to repo as `index.html`
+   - Enable GitHub Pages in repo settings
+   - Get the public URL: `https://username.github.io/repo-name/`
+   - Test URL in incognito mode
+
+2. **Update Privacy Policy Placeholders:**
+   - Replace `your.email@example.com` with your real email
+   - Verify "Last Updated" date is current
+
+3. **Add Privacy Policy URL to Chrome Web Store:**
+   - Go to Privacy practices tab
+   - Paste GitHub Pages URL in "Privacy policy" field
+   - Click Save
+
+4. **Final Verification:**
+   - Review all sections one more time
+   - Verify privacy policy loads correctly
+   - Check all justifications are accurate
+   - Submit for review
 
 ---
 
-**You're ready to certify! 🎯**
+**Status: Ready for final submission! 🎯**
+
+**Next Step:** Host privacy policy and add URL to submission form.
+
+---
+
+## 📝 Form Field Values (Copy-Paste Ready)
+
+### Single Purpose Description
+```
+ChatMarker allows users to mark, label, organize, and set reminders for important conversations across multiple chat platforms (WhatsApp, Reddit, Instagram, LinkedIn, Messenger) with cloud synchronization.
+```
+
+### Permission Justifications
+
+**storage:**
+```
+Required to save marked chats, labels, notes, reminders, and user settings locally on the device.
+```
+
+**notifications:**
+```
+Required to send reminder notifications when scheduled reminders trigger.
+```
+
+**alarms:**
+```
+Required to schedule and trigger reminders at user-specified times.
+```
+
+**activeTab:**
+```
+Required to interact with the current chat platform tab when marking chats via context menu.
+```
+
+**sidePanel:**
+```
+Required to display the extension's main interface as a side panel in Chrome.
+```
+
+**contextMenus:**
+```
+Required to add "Mark This Chat" option to the right-click context menu on supported platforms.
+```
+
+### Host Permission Justification
+```
+https://web.whatsapp.com/*
+Required to detect and mark chats on WhatsApp Web platform.
+
+https://www.messenger.com/*, https://www.facebook.com/*
+Required to detect and mark chats on Facebook Messenger platform.
+
+https://www.instagram.com/*
+Required to detect and mark Instagram Direct messages.
+
+https://www.linkedin.com/*
+Required to detect and mark LinkedIn messages.
+
+https://www.reddit.com/*, https://old.reddit.com/*, https://chat.reddit.com/*
+Required to detect and mark Reddit chats and messages.
+
+https://*.firebaseapp.com/*, https://*.googleapis.com/*
+Required for Firebase authentication and Firestore cloud sync functionality to work properly.
+```
+
+### Remote Code
+- **Selection:** ❌ No, I am not using Remote code
+- **Justification:** (Leave empty)
+
+### Data Types to Select
+- ✅ Personally identifiable information → Email address
+- ✅ Website content → Text, images, sounds, videos, or hyperlinks
+- ✅ Personal communications → Emails, texts, or chat messages
+
+### Certifications (Check all 3)
+- ✅ I do not sell or transfer user data to third parties, outside of the approved use cases
+- ✅ I do not use or transfer user data for purposes that are unrelated to my item's single purpose
+- ✅ I do not use or transfer user data to determine creditworthiness or for lending purposes

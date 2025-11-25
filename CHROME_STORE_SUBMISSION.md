@@ -215,11 +215,6 @@ Required to schedule and trigger reminders at user-specified times.
 Required to interact with the current chat platform tab when marking chats via context menu.
 ```
 
-**scripting**
-```
-Required to inject content scripts into supported chat platforms for detecting and marking chats.
-```
-
 **sidePanel**
 ```
 Required to display the extension's main interface as a side panel in Chrome.
