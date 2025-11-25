@@ -840,6 +840,7 @@ function showInlineReminderModal(chatName, chatMarker, onSave) {
       background: ${colors.inputBg};
       color: ${colors.textPrimary};
       box-sizing: border-box;
+      color-scheme: dark;
     ">
 
     <div style="display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end;">
