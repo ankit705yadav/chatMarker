@@ -22,12 +22,12 @@
 //   appId: "YOUR_APP_ID"
 // };
 const firebaseConfig = {
-  apiKey: "AIzaSyA1AjpgS8vJzowfres3AUtxZcd_8Pr5vKU",
-  authDomain: "chatmarker-40dd8.firebaseapp.com",
-  projectId: "chatmarker-40dd8",
-  storageBucket: "chatmarker-40dd8.firebasestorage.app",
-  messagingSenderId: "1051690783501",
-  appId: "1:1051690783501:web:0da4f73e9e9c5238301644",
+  apiKey: "AIzaSyAAhpCtLDqI11mTaE3Stv6Ui7YFlom37tg",
+  authDomain: "chatmarker-53286.firebaseapp.com",
+  projectId: "chatmarker-53286",
+  storageBucket: "chatmarker-53286.firebasestorage.app",
+  messagingSenderId: "990224923902",
+  appId: "1:990224923902:web:cd7bfe012096dc13d679af",
 };
 
 // Example (from ideaDumpster - DO NOT USE THIS):
